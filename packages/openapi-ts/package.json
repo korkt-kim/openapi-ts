@@ -1,14 +1,16 @@
 {
   "name": "@korkt-kim/openapi-ts",
+  "type": "module",
   "version": "0.0.1",
   "description": "",
   "bin": {
-    "openapi-ts": "./dist/index.mjs"
+    "openapi-ts": "./dist/index.js"
   },
-  "main": "./dist/index.mjs",
+  "main": "./dist/index.js",
+ 
   "scripts": {
     "build": "tsup",
-    "dev": "nodemon -e js,ts --watch . --exec \"pnpm run build\""
+    "dev": "nodemon -e js,ts --watch ./src --watch ./index.ts --exec \"pnpm run build\""
   },
   "keywords": [],
   "author": "",
