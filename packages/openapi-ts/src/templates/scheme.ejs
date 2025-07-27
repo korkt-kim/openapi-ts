@@ -1,0 +1,12 @@
+/* eslint-disable */
+
+<%_ schemes.forEach(function(scheme, i) { -%>
+<%- scheme.comment %>
+<%_ if (scheme.isTypeAlias) { -%>
+export type <%- scheme.name %> = <%- scheme.source %>
+<%_ } else { -%>
+export interface <%- scheme.name %> {
+  <%- scheme.source %>
+}
+<%_ } -%>
+<%_ }); -%>
