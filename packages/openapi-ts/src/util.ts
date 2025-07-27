@@ -2,8 +2,10 @@ import {
   camelCase as _camelCase,
   compact,
   isArray,
+  map,
   some,
   trim,
+  upperFirst,
 } from 'lodash-es'
 import { CommandOptionProps, JSONPatches, OpenApiOptionProps } from './types'
 import { OpenAPIV3 } from 'openapi-types'
@@ -103,7 +105,7 @@ export function parseOption(args: CommandOptionProps): OpenApiOptionProps[] {
 }
 
 export function normalizeInterfaceName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9]/g, '_')
+  return upperFirst(name.replace(/[^a-zA-Z0-9]/g, '_'))
 }
 
 export function isSwaggerReference(obj: any): obj is OpenAPIV3.ReferenceObject {
@@ -230,10 +232,54 @@ export interface Method {
 
 export function extractArgsFromMethod(
   method: Method,
-  options?: {
+  options: {
+    moduleName: string
     additionalArgs?: string[]
+    extractRequestParams?: boolean
   }
 ): string {
+  if (options?.extractRequestParams) {
+    // Generate schema type name using the operationId
+    const schemaTypeName = normalizeInterfaceName(`${method.operationId}Params`)
+
+    const hasPathParams = method.pathParams.length > 0
+    const hasQueryParams = method.queryParams.length > 0
+
+    const allQueryParamsOptional =
+      hasQueryParams && method.queryParams.every(param => !param.required)
+    const isQueryParamsOptional = hasQueryParams && allQueryParamsOptional
+
+    let bodyCode = ''
+    if (method.requestBody) {
+      bodyCode = `body: ${map(method.requestBody, ({ body }) => body.type).join(' | ')}`
+    } else if (METHODS_WITH_BODY.includes(method.method)) {
+      bodyCode = 'body?: any'
+    }
+
+    let pathCode = ''
+    if (hasPathParams) {
+      pathCode = method.pathParams
+        .map(pathParam => `${pathParam.name}: ${pathParam.type}`)
+        .join(', ')
+    }
+
+    // Generate combined parameter code with schema type reference
+    let queryParamsCode = ''
+
+    if (hasQueryParams) {
+      queryParamsCode = `queryParams${isQueryParamsOptional ? '?' : ''}: ${options.moduleName}.${schemaTypeName}`
+    } else {
+      queryParamsCode = `queryParams?: any`
+    }
+
+    return compact([
+      bodyCode,
+      pathCode,
+      queryParamsCode,
+      ...(options?.additionalArgs ?? []),
+    ]).join(',')
+  }
+
   const pathParamCode = method.pathParams
     .map(p => `${p.name}${p.required ? '' : '?'}: ${p.type}`)
     .join(',')
@@ -258,7 +304,7 @@ export function extractArgsFromMethod(
     if (codes.length) {
       queryParamCode = `queryParams${
         some(method.queryParams, ['required', true]) ? '' : '?'
-      }: {${codes.join(';')}; [key: string]: any}`
+      }: {${codes.join(';')} ${codes.length ? ';' : ''} [key: string]: any}`
     }
   } else {
     queryParamCode = 'queryParams?: { [key: string]: any }'

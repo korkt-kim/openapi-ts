@@ -26,16 +26,4 @@ export const generateApi = (args: CommandOptionProps) => {
       fetchFile.source
     )
   })
-
-  //generate scheme
-
-  //generate fetcher
-
-  //make folder
-
-  //   files.forEach(file => {
-  //
-  //
-  //
-  //   })
 }

@@ -5,7 +5,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function uploadFile(request: AxiosInstance,  { petId,body,queryParams,requestConfig }: { petId: number,body: FormData,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function uploadFile(request: AxiosInstance,  { petId,body,queryParams,requestConfig }: { body: FormData,petId: number,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<console.ApiResponse>({
         url: `/pet/${petId}/uploadImage`,
         method: 'post'
@@ -18,7 +18,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function addPet(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function addPet(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/pet`,
         method: 'post'
@@ -31,7 +31,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function updatePet(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function updatePet(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/pet`,
         method: 'put'
@@ -44,7 +44,7 @@ import * as console from './scheme'
   /**
   * Multiple status values can be provided with comma separated strings
   */
-  export function findPetsByStatus(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: {status: Array<'available' | 'pending' | 'sold'>; [key: string]: any},requestConfig?: AxiosRequestConfig } ) {
+  export function findPetsByStatus(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: console.FindPetsByStatusParams,requestConfig?: AxiosRequestConfig } ) {
     return request<Array<console.Pet>>({
         url: `/pet/findByStatus`,
         method: 'get',
@@ -56,7 +56,7 @@ import * as console from './scheme'
   /**
   * Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.
   */
-  export function findPetsByTags(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: {tags: Array<string>; [key: string]: any},requestConfig?: AxiosRequestConfig } ) {
+  export function findPetsByTags(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: console.FindPetsByTagsParams,requestConfig?: AxiosRequestConfig } ) {
     return request<Array<console.Pet>>({
         url: `/pet/findByTags`,
         method: 'get',
@@ -68,7 +68,7 @@ import * as console from './scheme'
   /**
   * Returns a single pet
   */
-  export function getPetById(request: AxiosInstance,  { petId,queryParams,requestConfig }: { petId: number,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig } ) {
+  export function getPetById(request: AxiosInstance,  { petId,queryParams,requestConfig }: { petId: number,queryParams?: any,requestConfig?: AxiosRequestConfig } ) {
     return request<console.Pet>({
         url: `/pet/${petId}`,
         method: 'get',
@@ -80,7 +80,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function updatePetWithForm(request: AxiosInstance,  { petId,body,queryParams,requestConfig }: { petId: number,body: {name?: string;status?: string},queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function updatePetWithForm(request: AxiosInstance,  { petId,body,queryParams,requestConfig }: { body: {name?: string;status?: string},petId: number,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/pet/${petId}`,
         method: 'post'
@@ -94,7 +94,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function deletePet(request: AxiosInstance,  { petId,queryParams,requestConfig }: { petId: number,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function deletePet(request: AxiosInstance,  { petId,queryParams,requestConfig }: { petId: number,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/pet/${petId}`,
         method: 'delete'
@@ -106,7 +106,7 @@ import * as console from './scheme'
   /**
   * Returns a map of status codes to quantities
   */
-  export function getInventory(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig } ) {
+  export function getInventory(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams?: any,requestConfig?: AxiosRequestConfig } ) {
     return request<Record<string, any>>({
         url: `/store/inventory`,
         method: 'get',
@@ -118,7 +118,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function placeOrder(request: AxiosInstance,  { body,queryParams,requestConfig }: { body: console.Order,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function placeOrder(request: AxiosInstance,  { body,queryParams,requestConfig }: { body: console.Order,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<console.Order>({
         url: `/store/order`,
         method: 'post'
@@ -131,7 +131,7 @@ import * as console from './scheme'
   /**
   * For valid response try integer IDs with value >= 1 and <= 10. Other values will generated exceptions
   */
-  export function getOrderById(request: AxiosInstance,  { orderId,queryParams,requestConfig }: { orderId: number,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig } ) {
+  export function getOrderById(request: AxiosInstance,  { orderId,queryParams,requestConfig }: { orderId: number,queryParams?: any,requestConfig?: AxiosRequestConfig } ) {
     return request<console.Order>({
         url: `/store/order/${orderId}`,
         method: 'get',
@@ -143,7 +143,7 @@ import * as console from './scheme'
   /**
   * For valid response try integer IDs with positive integer value. Negative or non-integer values will generate API errors
   */
-  export function deleteOrder(request: AxiosInstance,  { orderId,queryParams,requestConfig }: { orderId: number,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function deleteOrder(request: AxiosInstance,  { orderId,queryParams,requestConfig }: { orderId: number,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/store/order/${orderId}`,
         method: 'delete'
@@ -155,7 +155,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function createUsersWithListInput(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function createUsersWithListInput(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/user/createWithList`,
         method: 'post'
@@ -168,7 +168,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function getUserByName(request: AxiosInstance,  { username,queryParams,requestConfig }: { username: string,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig } ) {
+  export function getUserByName(request: AxiosInstance,  { username,queryParams,requestConfig }: { username: string,queryParams?: any,requestConfig?: AxiosRequestConfig } ) {
     return request<console.User>({
         url: `/user/${username}`,
         method: 'get',
@@ -180,7 +180,7 @@ import * as console from './scheme'
   /**
   * This can only be done by the logged in user.
   */
-  export function updateUser(request: AxiosInstance,  { username,body,queryParams,requestConfig }: { username: string,body: console.User,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function updateUser(request: AxiosInstance,  { username,body,queryParams,requestConfig }: { body: console.User,username: string,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/user/${username}`,
         method: 'put'
@@ -193,7 +193,7 @@ import * as console from './scheme'
   /**
   * This can only be done by the logged in user.
   */
-  export function deleteUser(request: AxiosInstance,  { username,queryParams,requestConfig }: { username: string,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function deleteUser(request: AxiosInstance,  { username,queryParams,requestConfig }: { username: string,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/user/${username}`,
         method: 'delete'
@@ -205,7 +205,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function loginUser(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: {password: string;username: string; [key: string]: any},requestConfig?: AxiosRequestConfig } ) {
+  export function loginUser(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: console.LoginUserParams,requestConfig?: AxiosRequestConfig } ) {
     return request<string>({
         url: `/user/login`,
         method: 'get',
@@ -217,7 +217,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function logoutUser(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig } ) {
+  export function logoutUser(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams?: any,requestConfig?: AxiosRequestConfig } ) {
     return request<void>({
         url: `/user/logout`,
         method: 'get',
@@ -229,7 +229,7 @@ import * as console from './scheme'
   /**
   * 
   */
-  export function createUsersWithArrayInput(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function createUsersWithArrayInput(request: AxiosInstance,  { body,queryParams,requestConfig }: { body?: any,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/user/createWithArray`,
         method: 'post'
@@ -242,7 +242,7 @@ import * as console from './scheme'
   /**
   * This can only be done by the logged in user.
   */
-  export function createUser(request: AxiosInstance,  { body,queryParams,requestConfig }: { body: console.User,queryParams?: { [key: string]: any },requestConfig?: AxiosRequestConfig }  ) {
+  export function createUser(request: AxiosInstance,  { body,queryParams,requestConfig }: { body: console.User,queryParams?: any,requestConfig?: AxiosRequestConfig }  ) {
     return request<void>({
         url: `/user`,
         method: 'post'
