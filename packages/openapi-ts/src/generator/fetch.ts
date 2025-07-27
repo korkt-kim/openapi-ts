@@ -4,9 +4,8 @@ import {
   entries,
   filter,
   findIndex,
-  intersection,
-  keys,
   map,
+  omit,
   pullAt,
   slice,
   uniqBy,
@@ -53,14 +52,13 @@ export class FetchGenerator {
     const methodsByFiles: Method[] = []
 
     for (const [path, _pathObj] of entries(this.swagger.getDocument().paths)) {
-      if (!intersection(keys(_pathObj), HTTP_METHODS)) {
-        continue
-      }
-
-      const pathObj = _pathObj as Record<
-        OpenAPIV3.HttpMethods,
-        OpenAPIV3.OperationObject
-      >
+      const pathObj = omit(_pathObj, [
+        'parameters',
+        '$ref',
+        'summary',
+        'description',
+        'servers',
+      ])
 
       for (const method of HTTP_METHODS) {
         const operation = pathObj[method]
@@ -128,7 +126,9 @@ export class FetchGenerator {
         moduleName: this.option.moduleName,
         methods: this.methodsByFiles.map(method => {
           const args = extractArgsFromMethod(method, {
+            moduleName: this.option.moduleName,
             additionalArgs: ['requestConfig?: AxiosRequestConfig'],
+            extractRequestParams: this.option.extractQueryParams,
           })
 
           const hasRequestBody =

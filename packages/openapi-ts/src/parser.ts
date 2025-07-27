@@ -1,8 +1,9 @@
-import { entries, isEmpty, isNil, isPlainObject } from 'lodash-es'
+import { entries, isEmpty, isNil, isPlainObject, join, reduce } from 'lodash-es'
 import { OpenAPIV3 } from 'openapi-types'
-
-import { Param } from './types'
+import jsonpatch from 'jsonpatch'
+import { JSONPatches, Param } from './types'
 import { getNameFromReference, normalizeInterfaceName } from './util'
+import { Model } from './generator/scheme'
 
 export type RequestBody = {
   contentType: (typeof SwaggerParser.reqContentTypes)[number]
@@ -201,5 +202,76 @@ export class SwaggerParser {
 
   getSchemes(): OpenAPIV3.ComponentsObject['schemas'] {
     return this.swagger?.components?.schemas
+  }
+
+  generateRequestParamSchemas(
+    operations: (Omit<OpenAPIV3.OperationObject, 'parameters'> & {
+      parameters: OpenAPIV3.ParameterObject[]
+    })[],
+    patch?: JSONPatches
+  ): Model[] {
+    const paramSchemas: Model[] = []
+    let source = ''
+
+    for (const operation of operations) {
+      // Skip methods that have no parameters
+      const queryParams = operation.parameters?.filter(param => {
+        return param.in === 'query'
+      }) satisfies OpenAPIV3.ParameterObject[]
+
+      if (queryParams.length === 0) {
+        continue
+      }
+
+      if (!operation.operationId) {
+        throw new Error(`operationId should be set for all operaions`)
+      }
+
+      const schemaName = normalizeInterfaceName(
+        `${operation.operationId}Params`
+      )
+      const patchItem = patch?.[schemaName]
+
+      const props = (queryParams as OpenAPIV3.ParameterObject[]).map(param => {
+        const safeName = /[^\w]/.test(param.name)
+          ? `'${param.name}'`
+          : param.name
+        if (patchItem) {
+          return `"${safeName}${param.required ? '' : '?'}": "${encodeURIComponent(this.schemaToType(param.schema ?? {}))}"`
+        }
+        return `${safeName}${param.required ? '' : '?'}: ${this.schemaToType(param.schema ?? {})}`
+      })
+
+      if (patchItem) {
+        console.log(patchItem)
+        let doc = JSON.parse(`{${join(props, ',')}}`)
+
+        try {
+          doc = jsonpatch.apply_patch(doc, patchItem)
+        } catch (err) {
+          console.error(err)
+          throw err
+        }
+        source = reduce(
+          doc,
+          (src, value, name) =>
+            `${src && `${src};`}${name}:${decodeURIComponent(value)}`,
+          ''
+        )
+      } else {
+        source = `${props.join(';')}${props.length ? ';' : ''}`
+      }
+
+      source = `${source}[key: string]: any`
+
+      paramSchemas.push({
+        name: schemaName,
+        originName: schemaName,
+        isTypeAlias: false,
+        source,
+      })
+    }
+
+    return paramSchemas
   }
 }

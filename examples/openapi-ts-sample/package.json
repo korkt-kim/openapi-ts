@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "openapi-ts": "openapi-ts",
     "openapi-ts_v2": "scripts/swagger2.sh",
-    "openapi-ts_v3": "scripts/swagger3.sh",
     "openapi-ts_v3_1": "scripts/swagger3_1.sh"
   },
   "dependencies": {

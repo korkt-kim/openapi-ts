@@ -1,12 +1,12 @@
 import jsonpatch from 'jsonpatch'
-import { join, keys, map, reduce } from 'lodash-es'
+import { get, join, keys, map, omit, reduce } from 'lodash-es'
 import path, { dirname } from 'path'
 import ejs from 'ejs'
 import { OpenApiOptionProps, SourceFile } from '../types'
 import { isSwaggerReference, normalizeInterfaceName } from '../util'
 import { SwaggerParser } from '../parser'
-import { OpenAPIV3 } from 'openapi-types'
 import { fileURLToPath } from 'url'
+import { OpenAPIV3 } from 'openapi-types'
 
 export interface Model {
   name: string
@@ -46,7 +46,7 @@ export class SchemeGenerator {
 
       const normalizedName = normalizeInterfaceName(interfaceName)
 
-      if (!isSwaggerReference(schema)) {
+      if (isSwaggerReference(schema)) {
         this.models.push({
           name: normalizedName,
           originName: interfaceName,
@@ -60,18 +60,12 @@ export class SchemeGenerator {
       const patchItem = patch?.[normalizedName]
 
       const props = reduce(
-        (schema as OpenAPIV3.SchemaObject).properties,
+        schema.properties,
         (arr, obj, name) => {
           const safeName = /[^\w]/.test(name) ? `'${name}'` : name
 
-          // optional(?) 필드 표기는 필드명과 required 배열을 가진 현재(상위) 컨텍스트에서만
-          // 가능하므로, schemaToType 함수는 인자로 전달 받은 자식 객체의 하위에 있는 required만을
-          // 알아서 처리한다.
-
           const propName = `${safeName}${
-            (schema as OpenAPIV3.SchemaObject)?.required?.includes(name)
-              ? ''
-              : '?'
+            schema?.required?.includes(name) ? '' : '?'
           }`
 
           const propValue = this.swagger?.schemaToType(obj)
@@ -92,13 +86,8 @@ export class SchemeGenerator {
         try {
           doc = jsonpatch.apply_patch(doc, patchItem)
         } catch (err) {
-          if (err instanceof (jsonpatch as any).InvalidPatch) {
-            throw new Error(`${normalizedName}: ${err}`)
-          }
-
-          if (err instanceof (jsonpatch as any).PatchApplyError) {
-            throw new Error(`${normalizedName}: ${err}`)
-          }
+          console.error(err)
+          throw err
         }
 
         source = reduce(
@@ -124,7 +113,60 @@ export class SchemeGenerator {
     const { models, option } = this
     const { moduleName } = option
 
-    const allModels = [...models]
+    let allModels = [...models]
+
+    if (option.extractQueryParams) {
+      const operationsWithQuery = Object.values(
+        this.swagger?.getDocument().paths ?? {}
+      ).flatMap(path => {
+        return Object.values(
+          omit(path, [
+            'parameters',
+            '$ref',
+            'summary',
+            'description',
+            'servers',
+          ])
+        )
+          .map((operation: OpenAPIV3.OperationObject) => {
+            return {
+              ...operation,
+              parameters: operation.parameters?.map(param => {
+                if (isSwaggerReference(param)) {
+                  const type = param.$ref.split('/')[-1] as string
+                  const referencedType = get(
+                    this.swagger?.getDocument().components?.parameters,
+                    type
+                  )
+
+                  if (referencedType) {
+                    return referencedType
+                  } else {
+                    throw new Error(`Type ${type} Not Referencable`)
+                  }
+                } else {
+                  return param
+                }
+              }),
+            }
+          })
+          .filter((operation: OpenAPIV3.OperationObject) =>
+            operation.parameters?.some(param => {
+              return 'in' in param && param.in === 'query'
+            })
+          )
+      }) as (Omit<OpenAPIV3.OperationObject, 'parameters'> & {
+        parameters: OpenAPIV3.ParameterObject[]
+      })[]
+
+      const paramSchemas =
+        this.swagger?.generateRequestParamSchemas(
+          operationsWithQuery,
+          option.patch
+        ) ?? []
+
+      allModels = [...allModels, ...paramSchemas]
+    }
 
     const schemes = map(
       allModels,
