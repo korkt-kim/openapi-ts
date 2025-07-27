@@ -3,11 +3,11 @@
 import yargs, { Argv } from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { generateApi } from './src/command'
-import { OpenApiTsProps } from './src/types'
+import { CommandOptionProps } from './src/types'
 
-const args = (yargs(hideBin(process.argv)) as Argv<OpenApiTsProps>)
+const args = (yargs(hideBin(process.argv)) as Argv<CommandOptionProps>)
   .parserConfiguration({
-    'camel-case-expansion': false,
+    'camel-case-expansion': true,
     'greedy-arrays': false,
     'short-option-groups': false,
     'unknown-options-as-args': true,
@@ -17,14 +17,25 @@ const args = (yargs(hideBin(process.argv)) as Argv<OpenApiTsProps>)
       path: {
         alias: 'p',
         description: 'path/url to swagger scheme',
-        type: 'string',
+        type: 'array',
         demandOption: true,
       },
       output: {
         alias: 'o',
         description: 'output path of typescript api file',
-        type: 'string',
-        default: './',
+        type: 'array',
+        demandOption: true,
+      },
+      moduleName: {
+        alias: 'm',
+        description: 'generate separated as module (default: none)',
+        type: 'array',
+        demandOption: true,
+      },
+      'patch-type': {
+        description: 'fix the type of extracted type (default: [])',
+        type: 'array',
+        default: [],
       },
       preserve: {
         description: 'preserve the name of the already exported api',
@@ -48,16 +59,6 @@ const args = (yargs(hideBin(process.argv)) as Argv<OpenApiTsProps>)
           'extract response body type to data contract (default: false)',
         type: 'boolean',
         default: false,
-      },
-      'patch-type': {
-        description: 'fix the type of extracted type (default: [])',
-        type: 'array',
-        default: [],
-      },
-      module: {
-        description: 'generate separated as module (default: none)',
-        type: 'string',
-        default: 'none',
       },
     })
   )
