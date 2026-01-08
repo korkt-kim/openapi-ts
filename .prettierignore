@@ -1,0 +1,14 @@
+**/.changeset
+**/node_modules
+**/templates
+**/dist
+**/.next
+**/.output
+**/.vitepress/cache
+**/.vitepress/dist
+**/test/e2e
+**/test/generated
+**/__snapshots__
+
+**/CHANGELOG.md
+pnpm-lock.yaml

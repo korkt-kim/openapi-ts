@@ -1,0 +1,34 @@
+.DS_Store
+.cache
+.idea
+.tmp
+junit.xml
+node_modules
+npm-debug.log*
+temp
+yarn-debug.log*
+yarn-error.log*
+
+*.iml
+dist
+coverage
+.env
+.next
+.output
+.turbo
+.vscode 
+
+# test files
+test/generated
+test/e2e/generated
+
+# debug files
+debug
+openapi-ts-debug-*
+# error files
+logs
+openapi-ts-error-*
+
+# But DO NOT ignore generated snapshots!
+!test/__snapshots__/test/generated
+!test/__snapshots__/test/generated/**
