@@ -1,7 +1,15 @@
 /** @type {import("prettier").Config} */
 const config = {
-    semi: true,
-    singleQuote: true,
-  };
+  "arrowParens": "avoid",
+  "bracketSameLine": true,
+  "bracketSpacing": true,
+  "jsxSingleQuote": true,
+  "printWidth": 80,
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "useTabs": false
+};
   
-  export default config;
+export default config;
