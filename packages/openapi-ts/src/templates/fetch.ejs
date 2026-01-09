@@ -1,0 +1,42 @@
+/* eslint-disable */
+import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import * as <%- moduleName %> from './scheme'
+
+<%_ methods.forEach(function(method, i) { -%>
+<%_ if (method.isGet) { -%>
+  /**
+  * <%- method.desc %>
+  */
+  export function <%- method.name %>(request: AxiosInstance<% if (method.args) { %>, <% } %><% if (method.args) { %> { <%- method.argsOnlyName %> }: { <%- method.args %> } <% } %>) {
+    return request<<%- method.responseType %>>({
+        url: `<%- method.path %>`,
+        method: '<%- method.method -%>',
+        params: queryParams,
+        ...requestConfig
+        <%_ if (method.contentType) { -%>
+        ,headers: {'Content-Type': '<%- method.contentType %>', ...requestConfig?.headers}
+        <%_ } -%>
+    })
+  }
+<%_ } else { -%>
+  /**
+  * <%- method.desc %>
+  */
+  export function <%- method.name %>(request: AxiosInstance<% if (method.args) { %>, <% } %><% if (method.args) { %> { <%- method.argsOnlyName %> }: { <%- method.args %> } <% } %> ) {
+    return request<<%- method.responseType %>>({
+        url: `<%- method.path %>`,
+        method: '<%- method.method %>'
+        <%_ if (method.hasRequestBody) { -%>
+        ,data: body
+        <%_ } -%>
+        ,params: queryParams,
+        ...requestConfig
+        <%_ if (method.contentType) { -%>
+        ,headers: {'Content-Type': '<%- method.contentType %>', ...requestConfig?.headers}
+        <%_ } -%>
+    })
+  }
+<%_ } -%>
+
+<%_ }); -%>
+
