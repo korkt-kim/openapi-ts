@@ -1,1 +1,0 @@
-pnpm openapi-ts -p https://petstore3.swagger.io/api/v3/openapi.json -o ./src/api/v3
