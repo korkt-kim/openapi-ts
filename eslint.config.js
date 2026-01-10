@@ -4,7 +4,6 @@ import pluginSimpleImportSort from 'eslint-plugin-simple-import-sort';
 import pluginSortDestructureKeys from 'eslint-plugin-sort-destructure-keys';
 import pluginSortKeysFix from 'eslint-plugin-sort-keys-fix';
 import pluginTypeScriptSortKeys from 'eslint-plugin-typescript-sort-keys';
-// import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 

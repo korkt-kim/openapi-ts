@@ -1,12 +1,11 @@
 {
-  "name": "@korkt-kim/openapi-ts",
+  "name": "@fdi/openapi-ts",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "",
   "bin": {
     "openapi-ts": "./dist/index.js"
   },
-  "main": "./dist/index.js",
   "scripts": {
     "build": "tsup",
     "dev": "nodemon -e js,ts,ejs --watch ./src --watch ./index.ts --exec \"pnpm run build\""
@@ -35,5 +34,8 @@
     "swagger2openapi": "^7.0.8",
     "yaml": "^2.8.0",
     "yargs": "^18.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://nexus.hmc.co.kr/repository/npm-fdi"
   }
 }
