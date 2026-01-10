@@ -31,7 +31,7 @@ import * as admin from './scheme'
   /**
   * Multiple status values can be provided with comma separated strings.
   */
-  export function findPetsByStatus(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams?: admin.FindPetsByStatusParams,requestConfig?: AxiosRequestConfig } ) {
+  export function findPetsByStatus(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: admin.FindPetsByStatusParams,requestConfig?: AxiosRequestConfig } ) {
     return request<Array<admin.Pet>>({
         url: `/pet/findByStatus`,
         method: 'get',
@@ -43,7 +43,7 @@ import * as admin from './scheme'
   /**
   * Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.
   */
-  export function findPetsByTags(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams?: admin.FindPetsByTagsParams,requestConfig?: AxiosRequestConfig } ) {
+  export function findPetsByTags(request: AxiosInstance,  { queryParams,requestConfig }: { queryParams: admin.FindPetsByTagsParams,requestConfig?: AxiosRequestConfig } ) {
     return request<Array<admin.Pet>>({
         url: `/pet/findByTags`,
         method: 'get',

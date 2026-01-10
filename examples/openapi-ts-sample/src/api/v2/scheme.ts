@@ -10,11 +10,11 @@ export interface Category {
 }
 
 export interface Pet {
-  id?:number;category?:Category;name:string;photoUrls:Array<string>;tags?:Array<Tag>;status?:'available' | 'pending' | 'sold';isDog?:boolean
+  id?:number;category?:Category;name:string;photoUrls:Array<string>;tags?:Array<Tag>;status?:'available' | 'pending' | 'sold'
 }
 
 export interface Tag {
-  id?:any;name?:string
+  id?:number;name?:string
 }
 
 export interface Order {
@@ -26,7 +26,7 @@ export interface User {
 }
 
 export interface FindPetsByStatusParams {
-  [key: string]: any
+  status: Array<'available' | 'pending' | 'sold'>;[key: string]: any
 }
 
 export interface FindPetsByTagsParams {

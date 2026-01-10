@@ -26,11 +26,11 @@ export interface ApiResponse {
 }
 
 export interface FindPetsByStatusParams {
-  status?: 'available' | 'pending' | 'sold';[key: string]: any
+  status: 'available' | 'pending' | 'sold';[key: string]: any
 }
 
 export interface FindPetsByTagsParams {
-  tags?: Array<string>;[key: string]: any
+  tags: Array<string>;[key: string]: any
 }
 
 export interface UpdatePetWithFormParams {

@@ -1,51 +1,51 @@
 export interface CommandOptionProps {
   // extract request params to data contract (Also combine path params and query params into one object) (default: false)
-  extractQueryParams?: boolean;
+  extractQueryParams?: boolean
   // extract request body type to data contract (default: false)
-  extractRequestBody?: boolean;
+  extractRequestBody?: boolean
   // extract response body type to data contract (default: false)
-  extractResponseBody?: boolean;
+  extractResponseBody?: boolean
   // generate separated as module
-  moduleName: string[] | string;
+  moduleName: string[] | string
   // output path of typescript api file (default: "./")
-  output: string[] | string;
+  output: string[] | string
   // fix the type of extracted type
-  patchType?: string[] | string;
+  patchType?: string[] | string
   //path/url to swagger scheme
-  path: string[] | string;
+  path: string[] | string
   // preserve the name of the already exported api (default: false)
-  preserve?: string;
+  preserve?: boolean
 }
 
 export interface OpenApiOptionProps {
   // extract request params to data contract (Also combine path params and query params into one object) (default: false)
-  extractQueryParams?: boolean;
+  extractQueryParams?: boolean
   // extract request body type to data contract (default: false)
-  extractRequestBody?: boolean;
+  extractRequestBody?: boolean
   // extract response body type to data contract (default: false)
-  extractResponseBody?: boolean;
+  extractResponseBody?: boolean
   // generate separated as module
-  moduleName: string;
+  moduleName: string
   // output path of typescript api file (default: "./")
-  output: string;
+  output: string
   // fix the type of extracted type
-  patch?: JSONPatches;
+  patch?: JSONPatches
   //path/url to swagger scheme
-  path: string;
+  path: string
   // preserve the name of the already exported api (default: false)
-  preserve?: string;
+  preserve?: boolean
 }
 
-export type SourceFile = { fileName: string; source: string };
+export type SourceFile = { fileName: string; source: string }
 
 export interface JSONPatches {
-  [swaggerName: string]: string | Array<any>;
+  [swaggerName: string]: string | Array<any>
 }
 
-export type PreserveFile = Record<string, Record<string, string>>;
+export type PreserveFile = Record<string, Record<string, string>>
 
 export interface Param {
-  name: string;
-  required: boolean;
-  type: string;
+  name: string
+  required: boolean
+  type: string
 }
