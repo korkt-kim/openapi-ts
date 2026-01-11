@@ -9,7 +9,8 @@
     "format": "prettier --write .",
     "lint:fix": "prettier --check --write . && eslint . --fix",
     "lint": "prettier --check . && eslint .",
-    "release": "pnpm publish -r"
+    "release": "pnpm publish -r",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",

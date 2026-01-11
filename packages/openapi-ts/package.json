@@ -9,10 +9,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "nodemon -e js,ts,ejs --watch ./src --watch ./index.ts --exec \"pnpm run build\"",
-    "test": "vitest --disable-console-intercept --reporter=verbose",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage",
-    "test:ui": "vitest --ui"
+    "test:coverage": "vitest --coverage"
   },
   "keywords": [],
   "author": "",
