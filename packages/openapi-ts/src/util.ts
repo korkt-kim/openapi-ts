@@ -69,10 +69,10 @@ export function parseOption(args: CommandOptionProps): OpenApiOptionProps[] {
         patch: args.patchType
           ? getJSONPatches([args.patchType], args.moduleName)
           : undefined,
-        extractQueryParams: args.extractQueryParams,
-        extractRequestBody: args.extractRequestBody,
-        extractResponseBody: args.extractResponseBody,
-        preserve: args.preserve,
+        extractQueryParams: args.extractQueryParams ?? false,
+        extractRequestBody: args.extractRequestBody ?? false,
+        extractResponseBody: args.extractResponseBody ?? false,
+        preserve: args.preserve ?? false,
       },
     ]
   }
@@ -82,7 +82,7 @@ export function parseOption(args: CommandOptionProps): OpenApiOptionProps[] {
       args.path.length !== args.output.length ||
       args.path.length !== args.moduleName.length
     ) {
-      throw new Error('asdfasdf')
+      throw new Error('All array options must have the same length')
     }
 
     return args.path.map((path, index) => {
