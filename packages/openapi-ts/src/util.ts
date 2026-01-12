@@ -108,8 +108,12 @@ export function normalizeInterfaceName(name: string): string {
   return upperFirst(name.replace(/[^a-zA-Z0-9]/g, '_'))
 }
 
-export function isSwaggerReference(obj: any): obj is OpenAPIV3.ReferenceObject {
-  return typeof obj.$ref === 'string'
+export function getSwaggerReferenceDeep(obj: any): string | undefined {
+  if ('type' in obj && obj.type === 'array') {
+    return getSwaggerReferenceDeep(obj.items)
+  }
+
+  return '$ref' in obj ? obj.$ref : undefined
 }
 
 const RESERVED_WORDS = [

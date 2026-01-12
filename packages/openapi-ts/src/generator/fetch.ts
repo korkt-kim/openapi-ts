@@ -17,7 +17,7 @@ import {
   extractArgsFromMethod,
   getNameFromReference,
   isReservedWord,
-  isSwaggerReference,
+  getSwaggerReferenceDeep,
   makeOperationId,
   Method,
   METHODS_WITH_BODY,
@@ -196,16 +196,17 @@ export class FetchGenerator {
     const parameters = operation.parameters?.reduce<
       OpenAPIV3.ParameterObject[]
     >((acc, obj) => {
-      if (isSwaggerReference(obj)) {
+      const refName = getSwaggerReferenceDeep(obj)
+      if (refName) {
         return [
           ...acc,
           this.swagger.getDocument().components?.parameters?.[
-            getNameFromReference(obj.$ref)
+            getNameFromReference(refName)
           ] as OpenAPIV3.ParameterObject,
         ]
       }
 
-      return [...acc, obj]
+      return [...acc, obj as OpenAPIV3.ParameterObject]
     }, [])
 
     return sortParameters(filter(parameters, predicate)).map(p => ({
