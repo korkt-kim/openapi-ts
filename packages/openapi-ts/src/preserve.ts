@@ -4,7 +4,7 @@ import path from 'path'
 export const FILENAME = './openapi-ts-preserve.json'
 
 export class PreserveHandler {
-  private _data
+  private _data: Record<string, string>
   constructor() {
     try {
       const content = readFileSync(FILENAME, 'utf8')

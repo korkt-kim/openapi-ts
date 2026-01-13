@@ -18,11 +18,12 @@ import {
   getNameFromReference,
   isReservedWord,
   getSwaggerReferenceDeep,
-  makeOperationId,
   Method,
   METHODS_WITH_BODY,
   sortParameters,
   swaggerNameToConfigSymbol,
+  presetOperationIdSet,
+  makeOperationId,
 } from '../util'
 import { SwaggerParser } from '../parser'
 import ejs from 'ejs'
@@ -52,6 +53,8 @@ export class FetchGenerator {
 
     const methodsByFiles: Method[] = []
 
+    presetOperationIdSet(preserveHandler.data, this.swagger.getDocument())
+
     for (const [path, _pathObj] of entries(this.swagger.getDocument().paths)) {
       const pathObj = omit(_pathObj, [
         'parameters',
@@ -68,7 +71,7 @@ export class FetchGenerator {
           continue
         }
 
-        let operationId = operation.operationId ?? makeOperationId(path, method)
+        let operationId = makeOperationId(path, method, operation.operationId)
 
         if (isReservedWord(operationId)) {
           operationId = camelCase(`${operationId} ${uniqueId('rf')}`)
