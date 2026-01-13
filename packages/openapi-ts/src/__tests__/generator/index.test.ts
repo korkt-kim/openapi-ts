@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { Generator } from '../../generator'
 import { OpenApiOptionProps } from '../../types'
 import { OpenAPIV3, OpenAPIV2 } from 'openapi-types'
-import { SwaggerParser } from '../../parser'
 
 // Mock dependencies
 
@@ -118,6 +117,7 @@ describe('Generator', () => {
 
       const converter = await import('swagger2openapi')
       ;(converter.default.convertObj as any).mockImplementation(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
         (_swagger: unknown, _option: unknown, callback: Function) => {
           callback(null, { openapi: mockConvertedSwagger })
         }
@@ -163,6 +163,7 @@ describe('Generator', () => {
     })
 
     it('should generate fetch code', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const getUserSpy = vi
         .spyOn(generator, 'generateFetch')
         .mockResolvedValue({

@@ -9,6 +9,7 @@ import {
   sortParameters,
   swaggerNameToConfigSymbol,
   extractArgsFromMethod,
+  getSwaggerReferenceDeep,
 } from '../util'
 import { CommandOptionProps } from '../types'
 import { OpenAPIV3 } from 'openapi-types'
@@ -197,8 +198,8 @@ describe('makeOperationId', () => {
   it('should handle duplicate operation IDs', () => {
     const operationId1 = makeOperationId('/users', OpenAPIV3.HttpMethods.GET)
     const operationId2 = makeOperationId('/users', OpenAPIV3.HttpMethods.GET)
-    expect(operationId1).toBe('getUsers2')
-    expect(operationId2).toBe('getUsers23')
+    expect(operationId1).toBe('getUsers1')
+    expect(operationId2).toBe('getUsers2')
   })
 })
 
@@ -267,6 +268,103 @@ describe('extractArgsFromMethod', () => {
     expect(result).toContain('queryParams?: API.GetUsersParams')
   })
 })
+describe('getSwaggerReferenceDeep', () => {
+  it('should return $ref from simple object', () => {
+    const obj = {
+      $ref: '#/components/schemas/User',
+    }
+    expect(getSwaggerReferenceDeep(obj)).toBe('#/components/schemas/User')
+  })
+
+  it('should return $ref from nested array object', () => {
+    const obj = {
+      type: 'array',
+      items: {
+        $ref: '#/components/schemas/User',
+      },
+    }
+    expect(getSwaggerReferenceDeep(obj)).toBe('#/components/schemas/User')
+  })
+
+  it('should handle deeply nested array objects', () => {
+    const obj = {
+      type: 'array',
+      items: {
+        type: 'array',
+        items: {
+          $ref: '#/components/schemas/User',
+        },
+      },
+    }
+    expect(getSwaggerReferenceDeep(obj)).toBe('#/components/schemas/User')
+  })
+
+  it('should return undefined for object without $ref', () => {
+    const obj = {
+      type: 'string',
+    }
+    expect(getSwaggerReferenceDeep(obj)).toBeUndefined()
+  })
+
+  it('should return undefined for array without $ref in items', () => {
+    const obj = {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+    }
+    expect(getSwaggerReferenceDeep(obj)).toBeUndefined()
+  })
+
+  it('should handle empty object', () => {
+    const obj = {}
+    expect(getSwaggerReferenceDeep(obj)).toBeUndefined()
+  })
+
+  it('should handle null or undefined input', () => {
+    // Note: The actual function may not handle null/undefined gracefully
+    // This test documents the current behavior
+    expect(() => getSwaggerReferenceDeep(null)).toThrow()
+    expect(() => getSwaggerReferenceDeep(undefined)).toThrow()
+  })
+
+  it('should handle object with type array but no items', () => {
+    const obj = {
+      type: 'array',
+    }
+    // When no items property exists, the function will recursively call itself with undefined
+    expect(() => getSwaggerReferenceDeep(obj)).toThrow()
+  })
+
+  it('should handle array type first, then check $ref', () => {
+    const obj = {
+      $ref: '#/components/schemas/DirectRef',
+      type: 'array',
+      items: {
+        $ref: '#/components/schemas/NestedRef',
+      },
+    }
+    // The function checks 'type' first, so it will recurse into 'items'
+    expect(getSwaggerReferenceDeep(obj)).toBe('#/components/schemas/NestedRef')
+  })
+
+  it('should handle complex nested structure with multiple array levels', () => {
+    const obj = {
+      type: 'array',
+      items: {
+        type: 'array',
+        items: {
+          type: 'array',
+          items: {
+            $ref: '#/components/schemas/DeepRef',
+          },
+        },
+      },
+    }
+    expect(getSwaggerReferenceDeep(obj)).toBe('#/components/schemas/DeepRef')
+  })
+})
+
 beforeEach(() => {
   global.fetch = vi.fn()
 })

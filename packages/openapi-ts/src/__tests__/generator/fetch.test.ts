@@ -2,12 +2,23 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { FetchGenerator } from '../../generator/fetch'
 import { OpenApiOptionProps } from '../../types'
 import { SwaggerParser } from '../../parser'
+import { PreserveHandler } from '../../preserve'
 
 // Mock ejs
 vi.mock('ejs', () => ({
   default: {
     renderFile: vi.fn(),
   },
+}))
+
+// Mock PreserveHandler
+vi.mock('../../preserve', () => ({
+  PreserveHandler: vi.fn().mockImplementation(() => ({
+    data: {},
+    getOperationId: vi.fn(),
+    setPreserveData: vi.fn(),
+    makePreserveFile: vi.fn(),
+  })),
 }))
 
 describe('FetchGenerator', () => {
@@ -285,6 +296,174 @@ export const createUserApi = async (body: User) => {
       const responseType = (generator as any).getResponseType(operation)
 
       expect(responseType).toBe('void')
+    })
+  })
+
+  describe('preserve functionality', () => {
+    it('should use preserve feature when enabled', () => {
+      const mockPreserveHandler = {
+        data: {
+          'GET:/users': 'preservedGetUsers',
+        },
+        getOperationId: vi.fn().mockReturnValue('preservedGetUsers'),
+        setPreserveData: vi.fn(),
+        makePreserveFile: vi.fn(),
+      }
+      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+
+      const preserveOption = {
+        ...mockOption,
+        preserve: true,
+      }
+
+      new FetchGenerator(preserveOption, mockParser)
+
+      expect(mockPreserveHandler.getOperationId).toHaveBeenCalled()
+      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalled()
+      expect(mockPreserveHandler.makePreserveFile).toHaveBeenCalled()
+    })
+
+    it('should not use preserve feature when disabled', () => {
+      const mockPreserveHandler = {
+        data: {},
+        getOperationId: vi.fn(),
+        setPreserveData: vi.fn(),
+        makePreserveFile: vi.fn(),
+      }
+      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+
+      const nonPreserveOption = {
+        ...mockOption,
+        preserve: false,
+      }
+
+      new FetchGenerator(nonPreserveOption, mockParser)
+
+      // PreserveHandler should still be instantiated but preserve-specific methods should not be called for preserve logic
+      expect(mockPreserveHandler.getOperationId).not.toHaveBeenCalled()
+      expect(mockPreserveHandler.setPreserveData).not.toHaveBeenCalled()
+      expect(mockPreserveHandler.makePreserveFile).not.toHaveBeenCalled()
+    })
+
+    it('should handle existing preserved operation IDs', () => {
+      const mockPreserveHandler = {
+        data: {
+          'GET:/users': 'customGetUsersAPI',
+          'POST:/users': 'customCreateUserAPI',
+        },
+        getOperationId: vi.fn()
+          .mockReturnValueOnce('customGetUsersAPI')
+          .mockReturnValueOnce('customCreateUserAPI'),
+        setPreserveData: vi.fn(),
+        makePreserveFile: vi.fn(),
+      }
+      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+
+      const preserveOption = {
+        ...mockOption,
+        preserve: true,
+      }
+
+      new FetchGenerator(preserveOption, mockParser)
+
+      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'get')
+      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'post')
+
+      // Should set the preserved operation IDs
+      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalledWith('/users', 'get', 'customGetUsersAPI')
+      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalledWith('/users', 'post', 'customCreateUserAPI')
+
+      expect(mockPreserveHandler.makePreserveFile).toHaveBeenCalled()
+    })
+
+    it('should generate new operation IDs when no preserved ID exists', () => {
+      const mockPreserveHandler = {
+        data: {},
+        getOperationId: vi.fn().mockReturnValue(undefined), // No preserved ID
+        setPreserveData: vi.fn(),
+        makePreserveFile: vi.fn(),
+      }
+      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+
+      const preserveOption = {
+        ...mockOption,
+        preserve: true,
+      }
+
+      new FetchGenerator(preserveOption, mockParser)
+
+      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'get')
+      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'post')
+
+      // Should set new operation IDs since none were preserved
+      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalled()
+      expect(mockPreserveHandler.makePreserveFile).toHaveBeenCalled()
+    })
+
+    it('should handle preserve with complex paths', () => {
+      const mockPreserveHandler = {
+        data: {
+          'GET:/users/{id}/orders': 'getUserOrdersAPI',
+        },
+        getOperationId: vi.fn().mockReturnValue('getUserOrdersAPI'),
+        setPreserveData: vi.fn(),
+        makePreserveFile: vi.fn(),
+      }
+      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+
+      // Mock parser with complex path
+      const complexPathParser = {
+        ...mockParser,
+        getDocument: vi.fn().mockReturnValue({
+          openapi: '3.0.0',
+          info: { title: 'Test API', version: '1.0.0' },
+          servers: [{ url: 'https://api.example.com' }],
+          paths: {
+            '/users/{id}/orders': {
+              get: {
+                operationId: 'getUserOrders',
+                parameters: [
+                  {
+                    name: 'id',
+                    in: 'path',
+                    required: true,
+                    schema: { type: 'string' },
+                  },
+                ],
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/Order' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            schemas: {
+              Order: {
+                type: 'object',
+              },
+            },
+          },
+        }),
+      }
+
+      const preserveOption = {
+        ...mockOption,
+        preserve: true,
+      }
+
+      new FetchGenerator(preserveOption, complexPathParser as any)
+
+      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users/{id}/orders', 'get')
+      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalledWith('/users/{id}/orders', 'get', 'getUserOrdersAPI')
     })
   })
 })
