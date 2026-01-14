@@ -1,10 +1,12 @@
-import { writeFileSync } from 'fs'
 import { mkdirp } from 'mkdirp'
 import path from 'path'
 
 import { CommandOptionProps } from './types'
-import { parseOption } from './util'
-import { Generator } from './generator'
+import { fetchSwagger, parseOption } from './util'
+import { Generator } from './generator/Generator'
+import { SwaggerParser } from './SwaggerParser'
+import { PreserveHandler } from './PreserveHandler'
+import { OperationIdHandler } from './OperationIdHandler'
 
 export const generateApi = (args: CommandOptionProps) => {
   const promiseRet: boolean[] = []
@@ -13,20 +15,28 @@ export const generateApi = (args: CommandOptionProps) => {
     options.forEach(async (option, index) => {
       try {
         mkdirp(path.resolve(option.output))
-        const generator = new Generator(option)
-        await generator.fetchSwagger()
-        const schemeFile = await generator.generateScheme()
-        const fetchFile = await generator.generateFetch()
+
+        const swagger = await fetchSwagger(option.path)
+        const swaggerParser = new SwaggerParser(swagger)
+        const preserveHandler = new PreserveHandler(option.preserve)
+        const operationIdHandler = new OperationIdHandler(
+          swaggerParser,
+          preserveHandler.preserveData
+        )
+
+        const generator = new Generator(
+          option,
+          swaggerParser,
+          operationIdHandler
+        )
 
         mkdirp(path.resolve(option.output))
-        writeFileSync(
-          path.resolve(option.output, schemeFile.fileName),
-          schemeFile.source
-        )
-        writeFileSync(
-          path.resolve(option.output, fetchFile.fileName),
-          fetchFile.source
-        )
+
+        await Promise.all([
+          generator.generateScheme(),
+          generator.generateFetch(),
+          generator.generatePreserve(),
+        ])
 
         promiseRet[index] = true
         if (promiseRet.every(item => item === true)) {

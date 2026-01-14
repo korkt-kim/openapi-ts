@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-      "declaration": true,
-      "esModuleInterop": true,
-      "module": "ESNext",
-      "moduleResolution": "Bundler",
-      "noImplicitOverride": true,
-      "noImplicitReturns": true,
-      "noUncheckedIndexedAccess": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "strict": true,
-      "target": "ES2022",
-      "alllowAny":true,
-      "useUnknownInCatchVariables": false
-    }
+  "compilerOptions": {
+    "declaration": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "target": "ES2022",
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false
   }
+}

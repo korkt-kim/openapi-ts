@@ -1,0 +1,5 @@
+{
+  "GetVehicleModelTrimByVehicleSegmentIdAndVehicleModelIdParams": [
+    { "op": "replace", "path": "/brand?", "value": "Array<string>" }
+  ]
+}

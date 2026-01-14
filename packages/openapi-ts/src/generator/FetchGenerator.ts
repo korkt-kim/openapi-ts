@@ -1,5 +1,4 @@
 import {
-  camelCase,
   compact,
   entries,
   filter,
@@ -9,25 +8,24 @@ import {
   pullAt,
   slice,
   uniqBy,
-  uniqueId,
 } from 'lodash-es'
 import { OpenAPIV3 } from 'openapi-types'
 import { OpenApiOptionProps, Param, SourceFile } from '../types'
 import {
   extractArgsFromMethod,
   getNameFromReference,
-  isReservedWord,
   getSwaggerReferenceDeep,
   Method,
   METHODS_WITH_BODY,
   sortParameters,
   swaggerNameToConfigSymbol,
 } from '../util'
-import { SwaggerParser } from '../parser'
-import ejs from 'ejs'
-import path, { dirname } from 'path'
+import { SwaggerParser } from '../SwaggerParser'
+import * as ejs from 'ejs'
+import * as path from 'path'
+import { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { OperationIdMapHandler } from '../operationIdMap'
+import { OperationIdHandler } from '../OperationIdHandler'
 
 const HTTP_METHODS: OpenAPIV3.HttpMethods[] = [
   OpenAPIV3.HttpMethods.GET,
@@ -44,12 +42,12 @@ export class FetchGenerator {
 
   constructor(
     private option: OpenApiOptionProps,
-    private swagger: SwaggerParser
+    private swagger: SwaggerParser,
+    operationIdHandler: OperationIdHandler
   ) {
     const { moduleName } = this.option
 
     const methodsByFiles: Method[] = []
-    const operationIdMapHandler = new OperationIdMapHandler(option.preserve)
 
     for (const [path, _pathObj] of entries(this.swagger.getDocument().paths)) {
       const pathObj = omit(_pathObj, [
@@ -62,28 +60,13 @@ export class FetchGenerator {
 
       for (const method of HTTP_METHODS) {
         const operation = pathObj[method]
+        const operationId = operationIdHandler.getOperationIdByPathAndMethod(
+          path,
+          method
+        )
 
-        if (!operation) {
+        if (!operation || !operationId) {
           continue
-        }
-
-        let operationId = operationIdMapHandler.makeOperationId(
-          path,
-          method,
-          operation.operationId
-        )
-
-        if (isReservedWord(operationId)) {
-          operationId = camelCase(`${operationId} ${uniqueId('rf')}`)
-        }
-
-        operationIdMapHandler.setOperationIdMap(
-          path,
-          method,
-          operationIdMapHandler.getOperationId(path, method) ?? operationId
-        )
-        if (option.preserve) {
-          operationIdMapHandler.makePreserveFile()
         }
 
         const pathParams = this.sortByPathParamSeq(
@@ -109,7 +92,7 @@ export class FetchGenerator {
         const requestBody = this.swagger.getRequestBody(operation, moduleName)
         const responseType = this.getResponseType(operation)
 
-        const methodObj: Method = {
+        const methodObj = {
           operationId,
           desc: operation.description ?? '',
           path,

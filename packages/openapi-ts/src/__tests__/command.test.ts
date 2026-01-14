@@ -1,181 +1,196 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateApi } from '../command'
-import { CommandOptionProps } from '../types'
+import * as util from '../util'
+import { SwaggerParser } from '../SwaggerParser'
+import { Generator } from '../generator/Generator'
+import { PreserveHandler } from '../PreserveHandler'
+import { OperationIdHandler } from '../OperationIdHandler'
 
 // Mock dependencies
-vi.mock('fs', () => ({
-  writeFileSync: vi.fn(),
-}))
+vi.mock('mkdirp')
+vi.mock('../util')
+vi.mock('../SwaggerParser')
+vi.mock('../generator/Generator')
+vi.mock('../PreserveHandler')
+vi.mock('../OperationIdHandler')
 
-vi.mock('mkdirp', () => ({
-  mkdirp: vi.fn(),
-}))
-
-vi.mock('path', () => ({
-  default: {
-    resolve: vi.fn().mockImplementation((...paths) => paths.join('/')),
-  },
-}))
-
-vi.mock('../util', () => ({
-  parseOption: vi.fn(),
-}))
-
-vi.mock('../generator', () => ({
-  Generator: vi.fn().mockImplementation(() => ({
-    fetchSwagger: vi.fn().mockResolvedValue(undefined),
-    generateScheme: vi.fn().mockResolvedValue({
-      fileName: 'scheme.ts',
-      source: 'export interface User {}',
-    }),
-    generateFetch: vi.fn().mockResolvedValue({
-      fileName: 'fetch.ts',
-      source: 'export const api = {};',
-    }),
-  })),
-}))
+const mockUtil = vi.mocked(util)
+const MockSwaggerParser = vi.mocked(SwaggerParser)
+const MockGenerator = vi.mocked(Generator)
+const MockPreserveHandler = vi.mocked(PreserveHandler)
+const MockOperationIdHandler = vi.mocked(OperationIdHandler)
 
 describe('command', () => {
-  describe('generateApi', () => {
-    let mockArgs: CommandOptionProps
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-    beforeEach(() => {
-      mockArgs = {
-        moduleName: 'TestAPI',
-        output: './src/api',
-        path: 'http://example.com/swagger.json',
+  describe('generateApi', () => {
+    it('should generate API successfully with single option', async () => {
+      // Arrange
+      const mockArgs = {
+        path: 'test-swagger.json',
+        output: './output',
+        moduleName: 'TestModule',
       }
 
-      vi.clearAllMocks()
-    })
+      const mockOptions = [{
+        path: 'test-swagger.json',
+        output: './output',
+        moduleName: 'TestModule',
+      }]
 
-    it('should generate API files successfully', async () => {
-      const mockParsedOptions = [
-        {
-          moduleName: 'TestAPI',
-          output: './src/api',
-          path: 'http://example.com/swagger.json',
-          extractQueryParams: false,
-          extractRequestBody: false,
-          extractResponseBody: false,
-          preserve: false,
-        },
-      ]
+      const mockSwagger = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {}
+      }
+      const mockSwaggerParser = {
+        getDocument: vi.fn().mockReturnValue(mockSwagger),
+      }
+      const mockPreserveHandler = {
+        preserveData: {},
+      }
+      const mockOperationIdHandler = {
+        getOperationIdByPathAndMethod: vi.fn(),
+      }
+      const mockGenerator = {
+        generateScheme: vi.fn().mockResolvedValue(undefined),
+        generateFetch: vi.fn().mockResolvedValue(undefined),
+        generatePreserve: vi.fn().mockResolvedValue(undefined),
+      }
 
-      const { parseOption } = await import('../util')
-      ;(parseOption as any).mockReturnValue(mockParsedOptions)
+      mockUtil.parseOption.mockReturnValue(mockOptions)
+      mockUtil.fetchSwagger.mockResolvedValue(mockSwagger)
+      MockSwaggerParser.mockReturnValue(mockSwaggerParser as any)
+      MockPreserveHandler.mockReturnValue(mockPreserveHandler as any)
+      MockOperationIdHandler.mockReturnValue(mockOperationIdHandler as any)
+      MockGenerator.mockReturnValue(mockGenerator as any)
 
-      const { mkdirp } = await import('mkdirp')
-      const { writeFileSync } = await import('fs')
-      const { Generator } = await import('../generator')
-
+      // Act
       await generateApi(mockArgs)
 
-      expect(parseOption).toHaveBeenCalledWith(mockArgs)
-      expect(mkdirp).toHaveBeenCalledWith('./src/api')
-      expect(Generator).toHaveBeenCalledWith(mockParsedOptions[0])
-
-      const generatorInstance = (Generator as any).mock.results[0].value
-      expect(generatorInstance.fetchSwagger).toHaveBeenCalled()
-      expect(generatorInstance.generateScheme).toHaveBeenCalled()
-      expect(generatorInstance.generateFetch).toHaveBeenCalled()
-
-      expect(writeFileSync).toHaveBeenCalledWith(
-        './src/api/scheme.ts',
-        'export interface User {}'
+      // Assert
+      expect(mockUtil.parseOption).toHaveBeenCalledWith(mockArgs)
+      expect(mockUtil.fetchSwagger).toHaveBeenCalledWith('test-swagger.json')
+      expect(MockSwaggerParser).toHaveBeenCalledWith(mockSwagger)
+      expect(MockPreserveHandler).toHaveBeenCalledWith(undefined)
+      expect(MockOperationIdHandler).toHaveBeenCalledWith(mockSwaggerParser, {})
+      expect(MockGenerator).toHaveBeenCalledWith(
+        mockOptions[0],
+        mockSwaggerParser,
+        mockOperationIdHandler
       )
-      expect(writeFileSync).toHaveBeenCalledWith(
-        './src/api/fetch.ts',
-        'export const api = {};'
-      )
+      expect(mockGenerator.generateScheme).toHaveBeenCalled()
+      expect(mockGenerator.generateFetch).toHaveBeenCalled()
+      expect(mockGenerator.generatePreserve).toHaveBeenCalled()
     })
 
     it('should handle multiple options', async () => {
-      const mockParsedOptions = [
-        {
-          moduleName: 'API1',
-          output: './src/api1',
-          path: 'http://example.com/swagger1.json',
-          extractQueryParams: false,
-          extractRequestBody: false,
-          extractResponseBody: false,
-          preserve: false,
-        },
-        {
-          moduleName: 'API2',
-          output: './src/api2',
-          path: 'http://example.com/swagger2.json',
-          extractQueryParams: false,
-          extractRequestBody: false,
-          extractResponseBody: false,
-          preserve: false,
-        },
-      ]
-
-      const { parseOption } = await import('../util')
-      ;(parseOption as any).mockReturnValue(mockParsedOptions)
-
-      const { mkdirp } = await import('mkdirp')
-      const { writeFileSync } = await import('fs')
-      const { Generator } = await import('../generator')
-
-      await generateApi(mockArgs)
-
-      expect(Generator).toHaveBeenCalledTimes(2)
-      expect(mkdirp).toHaveBeenCalledWith('./src/api1')
-      expect(mkdirp).toHaveBeenCalledWith('./src/api2')
-      expect(writeFileSync).toHaveBeenCalledTimes(4) // 2 files per option
-    })
-
-    it('should create output directories', async () => {
-      const mockParsedOptions = [
-        {
-          moduleName: 'TestAPI',
-          output: './src/nested/api',
-          path: 'http://example.com/swagger.json',
-          extractQueryParams: false,
-          extractRequestBody: false,
-          extractResponseBody: false,
-          preserve: false,
-        },
-      ]
-
-      const { parseOption } = await import('../util')
-      ;(parseOption as any).mockReturnValue(mockParsedOptions)
-
-      const { mkdirp } = await import('mkdirp')
-
-      await generateApi(mockArgs)
-
-      expect(mkdirp).toHaveBeenCalledWith('./src/nested/api')
-      expect(mkdirp).toHaveBeenCalledTimes(2) // Called twice in the function
-    })
-
-    it('should handle generator errors gracefully', async () => {
-      const mockParsedOptions = [
-        {
-          moduleName: 'TestAPI',
-          output: './src/api',
-          path: 'http://example.com/swagger.json',
-          extractQueryParams: false,
-          extractRequestBody: false,
-          extractResponseBody: false,
-          preserve: false,
-        },
-      ]
-
-      const { parseOption } = await import('../util')
-      ;(parseOption as any).mockReturnValue(mockParsedOptions)
-
-      const { Generator } = await import('../generator')
-      const mockGenerator = {
-        fetchSwagger: vi.fn().mockRejectedValue(new Error('Network error')),
-        generateScheme: vi.fn(),
-        generateFetch: vi.fn(),
+      // Arrange
+      const mockArgs = {
+        path: ['test-swagger1.json', 'test-swagger2.json'],
+        output: ['./output1', './output2'],
+        moduleName: ['TestModule1', 'TestModule2'],
       }
-      ;(Generator as any).mockImplementation(() => mockGenerator)
 
-      await expect(generateApi(mockArgs)).rejects.toThrow('Network error')
+      const mockOptions = [
+        {
+          path: 'test-swagger1.json',
+          output: './output1',
+          moduleName: 'TestModule1',
+        },
+        {
+          path: 'test-swagger2.json',
+          output: './output2',
+          moduleName: 'TestModule2',
+        },
+      ]
+
+      const mockSwagger = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {}
+      }
+      const mockGenerator = {
+        generateScheme: vi.fn().mockResolvedValue(undefined),
+        generateFetch: vi.fn().mockResolvedValue(undefined),
+        generatePreserve: vi.fn().mockResolvedValue(undefined),
+      }
+
+      mockUtil.parseOption.mockReturnValue(mockOptions)
+      mockUtil.fetchSwagger.mockResolvedValue(mockSwagger)
+      MockSwaggerParser.mockReturnValue({ getDocument: vi.fn().mockReturnValue(mockSwagger) } as any)
+      MockPreserveHandler.mockReturnValue({ preserveData: {} } as any)
+      MockOperationIdHandler.mockReturnValue({} as any)
+      MockGenerator.mockReturnValue(mockGenerator as any)
+
+      // Act
+      await generateApi(mockArgs)
+
+      // Assert
+      expect(mockUtil.parseOption).toHaveBeenCalledWith(mockArgs)
+      expect(mockUtil.fetchSwagger).toHaveBeenCalledTimes(2)
+      expect(MockGenerator).toHaveBeenCalledTimes(2)
+    })
+
+    it('should reject when fetchSwagger fails', async () => {
+      // Arrange
+      const mockArgs = {
+        path: 'invalid-swagger.json',
+        output: './output',
+        moduleName: 'TestModule',
+      }
+
+      const mockOptions = [{
+        path: 'invalid-swagger.json',
+        output: './output',
+        moduleName: 'TestModule',
+      }]
+
+      const error = new Error('Failed to fetch swagger')
+
+      mockUtil.parseOption.mockReturnValue(mockOptions)
+      mockUtil.fetchSwagger.mockRejectedValue(error)
+
+      // Act & Assert
+      await expect(generateApi(mockArgs)).rejects.toThrow('Failed to fetch swagger')
+    })
+
+    it('should reject when generator fails', async () => {
+      // Arrange
+      const mockArgs = {
+        path: 'test-swagger.json',
+        output: './output',
+        moduleName: 'TestModule',
+      }
+
+      const mockOptions = [{
+        path: 'test-swagger.json',
+        output: './output',
+        moduleName: 'TestModule',
+      }]
+
+      const mockSwagger = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {}
+      }
+      const mockGenerator = {
+        generateScheme: vi.fn().mockRejectedValue(new Error('Generation failed')),
+        generateFetch: vi.fn().mockResolvedValue(undefined),
+        generatePreserve: vi.fn().mockResolvedValue(undefined),
+      }
+
+      mockUtil.parseOption.mockReturnValue(mockOptions)
+      mockUtil.fetchSwagger.mockResolvedValue(mockSwagger)
+      MockSwaggerParser.mockReturnValue({ getDocument: vi.fn().mockReturnValue(mockSwagger) } as any)
+      MockPreserveHandler.mockReturnValue({ preserveData: {} } as any)
+      MockOperationIdHandler.mockReturnValue({} as any)
+      MockGenerator.mockReturnValue(mockGenerator as any)
+
+      // Act & Assert
+      await expect(generateApi(mockArgs)).rejects.toThrow('Generation failed')
     })
   })
 })

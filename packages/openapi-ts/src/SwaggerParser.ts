@@ -1,10 +1,7 @@
-import { entries, isEmpty, isNil, isPlainObject, join, reduce } from 'lodash-es'
+import { entries, isEmpty, isNil, isPlainObject } from 'lodash-es'
 import { OpenAPIV3 } from 'openapi-types'
-import jsonpatch from 'jsonpatch'
-import { JSONPatches, Param } from './types'
+import { Param } from './types'
 import { getNameFromReference, normalizeInterfaceName } from './util'
-import { Model } from './generator/scheme'
-import { OperationIdMapHandler } from './operationIdMap'
 
 export type RequestBody = {
   contentType: (typeof SwaggerParser.reqContentTypes)[number]
@@ -23,7 +20,7 @@ export class SwaggerParser {
 
   extractSchemaFromObj(
     obj: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
-  ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | null {
+  ) {
     let schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject | null = null
 
     function _extractSchemaFromObj(
@@ -48,7 +45,7 @@ export class SwaggerParser {
     return schema
   }
 
-  getDocument(): OpenAPIV3.Document {
+  getDocument() {
     if (!this.swagger) {
       throw new Error('Swagger is not loaded')
     }
@@ -200,74 +197,5 @@ export class SwaggerParser {
 
   getSchemes(): OpenAPIV3.ComponentsObject['schemas'] {
     return this.swagger?.components?.schemas
-  }
-
-  generateRequestParamSchemas(
-    operations: (Omit<OpenAPIV3.OperationObject, 'parameters'> & {
-      path: string
-      method: OpenAPIV3.HttpMethods
-      parameters: OpenAPIV3.ParameterObject[]
-    })[],
-    operationIdMapHandler: OperationIdMapHandler,
-    patch?: JSONPatches
-  ): Model[] {
-    const paramSchemas: Model[] = []
-    let source = ''
-
-    for (const operation of operations) {
-      // Skip methods that have no parameters
-      const queryParams = operation.parameters?.filter(param => {
-        return param.in === 'query'
-      }) satisfies OpenAPIV3.ParameterObject[]
-
-      if (queryParams.length === 0) {
-        continue
-      }
-
-      const schemaName = normalizeInterfaceName(
-        `${operationIdMapHandler.getOperationId(operation.path, operation.method)}Params`
-      )
-      const patchItem = patch?.[schemaName]
-
-      const props = (queryParams as OpenAPIV3.ParameterObject[]).map(param => {
-        const safeName = /[^\w]/.test(param.name)
-          ? `'${param.name}'`
-          : param.name
-        if (patchItem) {
-          return `"${safeName}${param.required ? '' : '?'}": "${encodeURIComponent(this.schemaToType(param.schema ?? {}))}"`
-        }
-        return `${safeName}${param.required ? '' : '?'}: ${this.schemaToType(param.schema ?? {})}`
-      })
-
-      if (patchItem) {
-        let doc = JSON.parse(`{${join(props, ',')}}`)
-
-        try {
-          doc = jsonpatch.apply_patch(doc, patchItem)
-        } catch (err) {
-          console.error(err)
-          throw err
-        }
-        source = reduce(
-          doc,
-          (src, value, name) =>
-            `${src && `${src};`}${name}:${decodeURIComponent(value)}`,
-          ''
-        )
-      } else {
-        source = `${props.join(';')}${props.length ? ';' : ''}`
-      }
-
-      source = `${source}[key: string]: any`
-
-      paramSchemas.push({
-        name: schemaName,
-        originName: schemaName,
-        isTypeAlias: false,
-        source,
-      })
-    }
-
-    return paramSchemas
   }
 }

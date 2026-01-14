@@ -9,9 +9,11 @@ import {
 } from 'lodash-es'
 import { CommandOptionProps, JSONPatches, OpenApiOptionProps } from './types'
 
-import { RequestBody } from './parser'
+import { RequestBody } from './SwaggerParser'
 import { readFileSync } from 'fs'
 import { parse } from 'yaml'
+import converter from 'swagger2openapi'
+import { OpenAPIV2, OpenAPIV3 } from 'openapi-types'
 
 export function fetchWithTimeout<T = any>(
   paths: RequestInfo,
@@ -315,4 +317,25 @@ function getJSONPatches(patchType: string[], moduleName: string): JSONPatches {
     .find(item => item.name === moduleName)
 
   return output?.data ?? {}
+}
+
+export async function fetchSwagger(path: string) {
+  const webResponse = await fetchWithTimeout(path)
+  const swagger = (await webResponse.json()) as
+    | OpenAPIV3.Document
+    | OpenAPIV2.Document
+
+  if (!swagger) {
+    throw new Error('No Swagger')
+  }
+
+  return new Promise<OpenAPIV3.Document>(resolve => {
+    if ('swagger' in swagger) {
+      converter.convertObj(swagger, {}, (_, { openapi }) => {
+        resolve(openapi)
+      })
+    } else {
+      resolve(swagger)
+    }
+  })
 }
