@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { FetchGenerator } from '../../generator/fetch'
 import { OpenApiOptionProps } from '../../types'
 import { SwaggerParser } from '../../parser'
-import { PreserveHandler } from '../../preserve'
+import { OperationIdMapHandler } from '../../operationIdMap'
 
 // Mock ejs
 vi.mock('ejs', () => ({
@@ -11,13 +11,14 @@ vi.mock('ejs', () => ({
   },
 }))
 
-// Mock PreserveHandler
-vi.mock('../../preserve', () => ({
-  PreserveHandler: vi.fn().mockImplementation(() => ({
+// Mock OperationIdMapHandler
+vi.mock('../../operationIdMap', () => ({
+  OperationIdMapHandler: vi.fn().mockImplementation(() => ({
     data: {},
     getOperationId: vi.fn(),
-    setPreserveData: vi.fn(),
+    setOperationIdMap: vi.fn(),
     makePreserveFile: vi.fn(),
+    makeOperationId: vi.fn().mockReturnValue('testOperationId'),
   })),
 }))
 
@@ -301,15 +302,16 @@ export const createUserApi = async (body: User) => {
 
   describe('preserve functionality', () => {
     it('should use preserve feature when enabled', () => {
-      const mockPreserveHandler = {
+      const mockOperationIdMapHandler = {
         data: {
           'GET:/users': 'preservedGetUsers',
         },
         getOperationId: vi.fn().mockReturnValue('preservedGetUsers'),
-        setPreserveData: vi.fn(),
+        setOperationIdMap: vi.fn(),
         makePreserveFile: vi.fn(),
+        makeOperationId: vi.fn().mockReturnValue('preservedGetUsers'),
       }
-      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+      vi.mocked(OperationIdMapHandler).mockImplementation(() => mockOperationIdMapHandler as any)
 
       const preserveOption = {
         ...mockOption,
@@ -318,19 +320,20 @@ export const createUserApi = async (body: User) => {
 
       new FetchGenerator(preserveOption, mockParser)
 
-      expect(mockPreserveHandler.getOperationId).toHaveBeenCalled()
-      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalled()
-      expect(mockPreserveHandler.makePreserveFile).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.setOperationIdMap).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.makePreserveFile).toHaveBeenCalled()
     })
 
     it('should not use preserve feature when disabled', () => {
-      const mockPreserveHandler = {
+      const mockOperationIdMapHandler = {
         data: {},
         getOperationId: vi.fn(),
-        setPreserveData: vi.fn(),
+        setOperationIdMap: vi.fn(),
         makePreserveFile: vi.fn(),
+        makeOperationId: vi.fn().mockReturnValue('testOperationId'),
       }
-      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+      vi.mocked(OperationIdMapHandler).mockImplementation(() => mockOperationIdMapHandler as any)
 
       const nonPreserveOption = {
         ...mockOption,
@@ -339,14 +342,14 @@ export const createUserApi = async (body: User) => {
 
       new FetchGenerator(nonPreserveOption, mockParser)
 
-      // PreserveHandler should still be instantiated but preserve-specific methods should not be called for preserve logic
-      expect(mockPreserveHandler.getOperationId).not.toHaveBeenCalled()
-      expect(mockPreserveHandler.setPreserveData).not.toHaveBeenCalled()
-      expect(mockPreserveHandler.makePreserveFile).not.toHaveBeenCalled()
+      // OperationIdMapHandler is still used for operation ID management, but makePreserveFile should not be called
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.setOperationIdMap).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.makePreserveFile).not.toHaveBeenCalled()
     })
 
     it('should handle existing preserved operation IDs', () => {
-      const mockPreserveHandler = {
+      const mockOperationIdMapHandler = {
         data: {
           'GET:/users': 'customGetUsersAPI',
           'POST:/users': 'customCreateUserAPI',
@@ -354,10 +357,11 @@ export const createUserApi = async (body: User) => {
         getOperationId: vi.fn()
           .mockReturnValueOnce('customGetUsersAPI')
           .mockReturnValueOnce('customCreateUserAPI'),
-        setPreserveData: vi.fn(),
+        setOperationIdMap: vi.fn(),
         makePreserveFile: vi.fn(),
+        makeOperationId: vi.fn().mockReturnValue('customGetUsersAPI'),
       }
-      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+      vi.mocked(OperationIdMapHandler).mockImplementation(() => mockOperationIdMapHandler as any)
 
       const preserveOption = {
         ...mockOption,
@@ -366,24 +370,25 @@ export const createUserApi = async (body: User) => {
 
       new FetchGenerator(preserveOption, mockParser)
 
-      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'get')
-      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'post')
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalledWith('/users', 'get')
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalledWith('/users', 'post')
 
       // Should set the preserved operation IDs
-      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalledWith('/users', 'get', 'customGetUsersAPI')
-      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalledWith('/users', 'post', 'customCreateUserAPI')
+      expect(mockOperationIdMapHandler.setOperationIdMap).toHaveBeenCalledWith('/users', 'get', 'customGetUsersAPI')
+      expect(mockOperationIdMapHandler.setOperationIdMap).toHaveBeenCalledWith('/users', 'post', 'customCreateUserAPI')
 
-      expect(mockPreserveHandler.makePreserveFile).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.makePreserveFile).toHaveBeenCalled()
     })
 
     it('should generate new operation IDs when no preserved ID exists', () => {
-      const mockPreserveHandler = {
+      const mockOperationIdMapHandler = {
         data: {},
         getOperationId: vi.fn().mockReturnValue(undefined), // No preserved ID
-        setPreserveData: vi.fn(),
+        setOperationIdMap: vi.fn(),
         makePreserveFile: vi.fn(),
+        makeOperationId: vi.fn().mockReturnValue('newOperationId'),
       }
-      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+      vi.mocked(OperationIdMapHandler).mockImplementation(() => mockOperationIdMapHandler as any)
 
       const preserveOption = {
         ...mockOption,
@@ -392,24 +397,25 @@ export const createUserApi = async (body: User) => {
 
       new FetchGenerator(preserveOption, mockParser)
 
-      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'get')
-      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users', 'post')
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalledWith('/users', 'get')
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalledWith('/users', 'post')
 
       // Should set new operation IDs since none were preserved
-      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalled()
-      expect(mockPreserveHandler.makePreserveFile).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.setOperationIdMap).toHaveBeenCalled()
+      expect(mockOperationIdMapHandler.makePreserveFile).toHaveBeenCalled()
     })
 
     it('should handle preserve with complex paths', () => {
-      const mockPreserveHandler = {
+      const mockOperationIdMapHandler = {
         data: {
           'GET:/users/{id}/orders': 'getUserOrdersAPI',
         },
         getOperationId: vi.fn().mockReturnValue('getUserOrdersAPI'),
-        setPreserveData: vi.fn(),
+        setOperationIdMap: vi.fn(),
         makePreserveFile: vi.fn(),
+        makeOperationId: vi.fn().mockReturnValue('getUserOrdersAPI'),
       }
-      vi.mocked(PreserveHandler).mockImplementation(() => mockPreserveHandler as any)
+      vi.mocked(OperationIdMapHandler).mockImplementation(() => mockOperationIdMapHandler as any)
 
       // Mock parser with complex path
       const complexPathParser = {
@@ -462,8 +468,8 @@ export const createUserApi = async (body: User) => {
 
       new FetchGenerator(preserveOption, complexPathParser as any)
 
-      expect(mockPreserveHandler.getOperationId).toHaveBeenCalledWith('/users/{id}/orders', 'get')
-      expect(mockPreserveHandler.setPreserveData).toHaveBeenCalledWith('/users/{id}/orders', 'get', 'getUserOrdersAPI')
+      expect(mockOperationIdMapHandler.getOperationId).toHaveBeenCalledWith('/users/{id}/orders', 'get')
+      expect(mockOperationIdMapHandler.setOperationIdMap).toHaveBeenCalledWith('/users/{id}/orders', 'get', 'getUserOrdersAPI')
     })
   })
 })

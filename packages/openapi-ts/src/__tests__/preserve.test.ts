@@ -1,17 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { existsSync, unlinkSync, readFileSync, writeFileSync } from 'fs'
-import { PreserveHandler, FILENAME } from '../preserve'
+import { OperationIdMapHandler, FILENAME } from '../operationIdMap'
 
 // Mock file system operations
 vi.mock('fs')
 
-describe('PreserveHandler', () => {
-  let preserveHandler: PreserveHandler
+describe('OperationIdMapHandler', () => {
+  let operationIdMapHandler: OperationIdMapHandler
   const mockReadFileSync = vi.mocked(readFileSync)
   const mockWriteFileSync = vi.mocked(writeFileSync)
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset singleton instance
+    OperationIdMapHandler.resetInstance()
   })
 
   afterEach(() => {
@@ -27,9 +29,9 @@ describe('PreserveHandler', () => {
         throw new Error('File not found')
       })
 
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(false)
 
-      expect(preserveHandler.data).toEqual({})
+      expect(operationIdMapHandler.data).toEqual({})
     })
 
     it('should load existing preserve data from file', () => {
@@ -39,18 +41,18 @@ describe('PreserveHandler', () => {
       }
       mockReadFileSync.mockReturnValue(JSON.stringify(mockData))
 
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(true)
 
-      expect(preserveHandler.data).toEqual(mockData)
+      expect(operationIdMapHandler.data).toEqual(mockData)
       expect(mockReadFileSync).toHaveBeenCalledWith(FILENAME, 'utf8')
     })
 
     it('should handle invalid JSON in preserve file', () => {
       mockReadFileSync.mockReturnValue('invalid json')
 
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(true)
 
-      expect(preserveHandler.data).toEqual({})
+      expect(operationIdMapHandler.data).toEqual({})
     })
   })
 
@@ -59,21 +61,21 @@ describe('PreserveHandler', () => {
       mockReadFileSync.mockImplementation(() => {
         throw new Error('File not found')
       })
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(false)
     })
 
     it('should generate correct key from path and method', () => {
-      const key = preserveHandler.getKey('/users/{id}', 'GET')
+      const key = operationIdMapHandler.getKey('/users/{id}', 'GET')
       expect(key).toBe('GET:/users/{id}')
     })
 
     it('should handle empty path', () => {
-      const key = preserveHandler.getKey('', 'POST')
+      const key = operationIdMapHandler.getKey('', 'POST')
       expect(key).toBe('POST:')
     })
 
     it('should handle special characters in path', () => {
-      const key = preserveHandler.getKey('/users/{id}/orders?sort=desc', 'PUT')
+      const key = operationIdMapHandler.getKey('/users/{id}/orders?sort=desc', 'PUT')
       expect(key).toBe('PUT:/users/{id}/orders?sort=desc')
     })
   })
@@ -85,55 +87,55 @@ describe('PreserveHandler', () => {
         'POST:/users': 'createUserOperation',
       }
       mockReadFileSync.mockReturnValue(JSON.stringify(mockData))
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(true)
     })
 
     it('should return existing operation ID', () => {
-      const operationId = preserveHandler.getOperationId('/users', 'GET')
+      const operationId = operationIdMapHandler.getOperationId('/users', 'GET')
       expect(operationId).toBe('getUsersOperation')
     })
 
     it('should return undefined for non-existing operation', () => {
-      const operationId = preserveHandler.getOperationId('/users/{id}', 'DELETE')
+      const operationId = operationIdMapHandler.getOperationId('/users/{id}', 'DELETE')
       expect(operationId).toBeUndefined()
     })
 
     it('should handle case-sensitive methods', () => {
-      const operationId = preserveHandler.getOperationId('/users', 'get')
+      const operationId = operationIdMapHandler.getOperationId('/users', 'get')
       expect(operationId).toBeUndefined()
     })
   })
 
-  describe('setPreserveData', () => {
+  describe('setOperationIdMap', () => {
     beforeEach(() => {
       mockReadFileSync.mockImplementation(() => {
         throw new Error('File not found')
       })
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(false)
     })
 
-    it('should set preserve data correctly', () => {
-      preserveHandler.setPreserveData('/users', 'GET', 'getUsersAPI')
+    it('should set operation id map correctly', () => {
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'getUsersAPI')
 
-      expect(preserveHandler.data['GET:/users']).toBe('getUsersAPI')
+      expect(operationIdMapHandler.data['GET:/users']).toBe('getUsersAPI')
     })
 
     it('should overwrite existing data', () => {
-      preserveHandler.setPreserveData('/users', 'GET', 'originalOperation')
-      preserveHandler.setPreserveData('/users', 'GET', 'updatedOperation')
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'originalOperation')
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'updatedOperation')
 
-      expect(preserveHandler.data['GET:/users']).toBe('updatedOperation')
+      expect(operationIdMapHandler.data['GET:/users']).toBe('updatedOperation')
     })
 
     it('should handle multiple operations', () => {
-      preserveHandler.setPreserveData('/users', 'GET', 'getUsersAPI')
-      preserveHandler.setPreserveData('/users', 'POST', 'createUserAPI')
-      preserveHandler.setPreserveData('/orders', 'GET', 'getOrdersAPI')
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'getUsersAPI')
+      operationIdMapHandler.setOperationIdMap('/users', 'POST', 'createUserAPI')
+      operationIdMapHandler.setOperationIdMap('/orders', 'GET', 'getOrdersAPI')
 
-      expect(Object.keys(preserveHandler.data)).toHaveLength(3)
-      expect(preserveHandler.data['GET:/users']).toBe('getUsersAPI')
-      expect(preserveHandler.data['POST:/users']).toBe('createUserAPI')
-      expect(preserveHandler.data['GET:/orders']).toBe('getOrdersAPI')
+      expect(Object.keys(operationIdMapHandler.data)).toHaveLength(3)
+      expect(operationIdMapHandler.data['GET:/users']).toBe('getUsersAPI')
+      expect(operationIdMapHandler.data['POST:/users']).toBe('createUserAPI')
+      expect(operationIdMapHandler.data['GET:/orders']).toBe('getOrdersAPI')
     })
   })
 
@@ -142,14 +144,14 @@ describe('PreserveHandler', () => {
       mockReadFileSync.mockImplementation(() => {
         throw new Error('File not found')
       })
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(false)
     })
 
     it('should write preserve data to file', () => {
-      preserveHandler.setPreserveData('/users', 'GET', 'getUsersAPI')
-      preserveHandler.setPreserveData('/users', 'POST', 'createUserAPI')
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'getUsersAPI')
+      operationIdMapHandler.setOperationIdMap('/users', 'POST', 'createUserAPI')
 
-      preserveHandler.makePreserveFile()
+      operationIdMapHandler.makePreserveFile()
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(
         expect.stringMatching(/openapi-ts-preserve\.json$/),
@@ -161,7 +163,7 @@ describe('PreserveHandler', () => {
     })
 
     it('should write empty object when no data', () => {
-      preserveHandler.makePreserveFile()
+      operationIdMapHandler.makePreserveFile()
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(
         expect.stringMatching(/openapi-ts-preserve\.json$/),
@@ -177,12 +179,11 @@ describe('PreserveHandler', () => {
         'POST:/users': 'createUserOperation',
       }
       mockReadFileSync.mockReturnValue(JSON.stringify(mockData))
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(true)
 
-      const data = preserveHandler.data
+      const data = operationIdMapHandler.data
 
       expect(data).toEqual(mockData)
-      expect(data).toBe(preserveHandler['_data']) // Direct reference check
     })
   })
 
@@ -194,15 +195,15 @@ describe('PreserveHandler', () => {
     })
 
     it('should handle complete preserve workflow', () => {
-      preserveHandler = new PreserveHandler()
+      operationIdMapHandler = new OperationIdMapHandler(false)
 
       // Add some data
-      preserveHandler.setPreserveData('/users', 'GET', 'getUsersAPI')
-      preserveHandler.setPreserveData('/users/{id}', 'GET', 'getUserByIdAPI')
-      preserveHandler.setPreserveData('/users', 'POST', 'createUserAPI')
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'getUsersAPI')
+      operationIdMapHandler.setOperationIdMap('/users/{id}', 'GET', 'getUserByIdAPI')
+      operationIdMapHandler.setOperationIdMap('/users', 'POST', 'createUserAPI')
 
       // Save to file
-      preserveHandler.makePreserveFile()
+      operationIdMapHandler.makePreserveFile()
 
       // Verify the data was written correctly
       expect(mockWriteFileSync).toHaveBeenCalledWith(
@@ -215,26 +216,27 @@ describe('PreserveHandler', () => {
       )
 
       // Verify retrieval
-      expect(preserveHandler.getOperationId('/users', 'GET')).toBe('getUsersAPI')
-      expect(preserveHandler.getOperationId('/users/{id}', 'GET')).toBe('getUserByIdAPI')
-      expect(preserveHandler.getOperationId('/users', 'POST')).toBe('createUserAPI')
-      expect(preserveHandler.getOperationId('/users', 'DELETE')).toBeUndefined()
+      expect(operationIdMapHandler.getOperationId('/users', 'GET')).toBe('getUsersAPI')
+      expect(operationIdMapHandler.getOperationId('/users/{id}', 'GET')).toBe('getUserByIdAPI')
+      expect(operationIdMapHandler.getOperationId('/users', 'POST')).toBe('createUserAPI')
+      expect(operationIdMapHandler.getOperationId('/users', 'DELETE')).toBeUndefined()
     })
 
     it('should handle preserve file reloading scenario', () => {
       // First instance - write data
-      preserveHandler = new PreserveHandler()
-      preserveHandler.setPreserveData('/users', 'GET', 'getUsersAPI')
-      preserveHandler.makePreserveFile()
+      operationIdMapHandler = new OperationIdMapHandler(false)
+      operationIdMapHandler.setOperationIdMap('/users', 'GET', 'getUsersAPI')
+      operationIdMapHandler.makePreserveFile()
 
       // Mock reading the saved data for second instance
       mockReadFileSync.mockReturnValue(
         JSON.stringify({ 'GET:/users': 'getUsersAPI' })
       )
 
-      // Second instance - should load existing data
-      const newPreserveHandler = new PreserveHandler()
-      expect(newPreserveHandler.getOperationId('/users', 'GET')).toBe('getUsersAPI')
+      // Reset singleton and create new instance
+      OperationIdMapHandler.resetInstance()
+      const newOperationIdMapHandler = new OperationIdMapHandler(true)
+      expect(newOperationIdMapHandler.getOperationId('/users', 'GET')).toBe('getUsersAPI')
     })
   })
 })

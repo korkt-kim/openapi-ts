@@ -1,0 +1,1 @@
+{"get:/users":"getUsers","post:/users":"createUser","delete:/users":"deleteUser","get:/users/{id}/orders":"getUserOrders"}

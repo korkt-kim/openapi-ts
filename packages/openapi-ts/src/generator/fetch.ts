@@ -22,14 +22,12 @@ import {
   METHODS_WITH_BODY,
   sortParameters,
   swaggerNameToConfigSymbol,
-  presetOperationIdSet,
-  makeOperationId,
 } from '../util'
 import { SwaggerParser } from '../parser'
 import ejs from 'ejs'
 import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { PreserveHandler } from '../preserve'
+import { OperationIdMapHandler } from '../operationIdMap'
 
 const HTTP_METHODS: OpenAPIV3.HttpMethods[] = [
   OpenAPIV3.HttpMethods.GET,
@@ -45,15 +43,13 @@ export class FetchGenerator {
   methodsByFiles: Method[] = []
 
   constructor(
-    public option: OpenApiOptionProps,
-    public swagger: SwaggerParser
+    private option: OpenApiOptionProps,
+    private swagger: SwaggerParser
   ) {
-    const preserveHandler = new PreserveHandler()
     const { moduleName } = this.option
 
     const methodsByFiles: Method[] = []
-
-    presetOperationIdSet(preserveHandler.data, this.swagger.getDocument())
+    const operationIdMapHandler = new OperationIdMapHandler(option.preserve)
 
     for (const [path, _pathObj] of entries(this.swagger.getDocument().paths)) {
       const pathObj = omit(_pathObj, [
@@ -71,17 +67,23 @@ export class FetchGenerator {
           continue
         }
 
-        let operationId = makeOperationId(path, method, operation.operationId)
+        let operationId = operationIdMapHandler.makeOperationId(
+          path,
+          method,
+          operation.operationId
+        )
 
         if (isReservedWord(operationId)) {
           operationId = camelCase(`${operationId} ${uniqueId('rf')}`)
         }
 
+        operationIdMapHandler.setOperationIdMap(
+          path,
+          method,
+          operationIdMapHandler.getOperationId(path, method) ?? operationId
+        )
         if (option.preserve) {
-          operationId =
-            preserveHandler.getOperationId(path, method) ?? operationId
-          preserveHandler.setPreserveData(path, method, operationId)
-          preserveHandler.makePreserveFile()
+          operationIdMapHandler.makePreserveFile()
         }
 
         const pathParams = this.sortByPathParamSeq(

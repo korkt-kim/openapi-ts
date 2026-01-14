@@ -7,6 +7,7 @@ import { getSwaggerReferenceDeep, normalizeInterfaceName } from '../util'
 import { SwaggerParser } from '../parser'
 import { fileURLToPath } from 'url'
 import { OpenAPIV3 } from 'openapi-types'
+import { OperationIdMapHandler } from '../operationIdMap'
 
 export interface Model {
   name: string
@@ -20,11 +21,12 @@ export interface Detail extends Model {
 }
 
 export class SchemeGenerator {
-  models: Model[] = []
-  option: OpenApiOptionProps
-  swagger: SwaggerParser | undefined
+  private models: Model[] = []
 
-  constructor(option: OpenApiOptionProps, swagger: SwaggerParser) {
+  constructor(
+    private option: OpenApiOptionProps,
+    private swagger: SwaggerParser
+  ) {
     this.option = option
     this.swagger = swagger
 
@@ -118,11 +120,11 @@ export class SchemeGenerator {
     let allModels = [...models]
 
     if (option.extractQueryParams) {
-      const operationsWithQuery = Object.values(
+      const operationsWithQuery = Object.entries(
         this.swagger?.getDocument().paths ?? {}
-      ).flatMap(path => {
-        return Object.values(
-          omit(path, [
+      ).flatMap(([path, operationWithMethod]) => {
+        return Object.entries(
+          omit(operationWithMethod, [
             'parameters',
             '$ref',
             'summary',
@@ -130,41 +132,52 @@ export class SchemeGenerator {
             'servers',
           ])
         )
-          .map((operation: OpenAPIV3.OperationObject) => {
-            return {
-              ...operation,
-              parameters: operation.parameters?.map(param => {
-                const refName = getSwaggerReferenceDeep(param)
-                if (refName) {
-                  const type = refName.split('/')[-1] as string
-                  const referencedType = get(
-                    this.swagger?.getDocument().components?.parameters,
-                    type
-                  )
+          .map(
+            ([method, operation]: [
+              method: string,
+              operation: OpenAPIV3.OperationObject,
+            ]) => {
+              console.log(path, method, operation)
+              return {
+                ...operation,
+                path,
+                method,
+                parameters: operation.parameters?.map(param => {
+                  const refName = getSwaggerReferenceDeep(param)
+                  if (refName) {
+                    const type = refName.split('/')[-1] as string
+                    const referencedType = get(
+                      this.swagger?.getDocument().components?.parameters,
+                      type
+                    )
 
-                  if (referencedType) {
-                    return referencedType
+                    if (referencedType) {
+                      return referencedType
+                    } else {
+                      throw new Error(`Type ${type} Not Referencable`)
+                    }
                   } else {
-                    throw new Error(`Type ${type} Not Referencable`)
+                    return param
                   }
-                } else {
-                  return param
-                }
-              }),
+                }),
+              }
             }
-          })
+          )
           .filter((operation: OpenAPIV3.OperationObject) =>
             operation.parameters?.some(param => {
               return 'in' in param && param.in === 'query'
             })
           )
       }) as (Omit<OpenAPIV3.OperationObject, 'parameters'> & {
+        path: string
+        method: OpenAPIV3.HttpMethods
         parameters: OpenAPIV3.ParameterObject[]
       })[]
 
       const paramSchemas =
         this.swagger?.generateRequestParamSchemas(
           operationsWithQuery,
+          new OperationIdMapHandler(option.preserve),
           option.patch
         ) ?? []
 

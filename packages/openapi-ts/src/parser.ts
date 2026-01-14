@@ -4,6 +4,7 @@ import jsonpatch from 'jsonpatch'
 import { JSONPatches, Param } from './types'
 import { getNameFromReference, normalizeInterfaceName } from './util'
 import { Model } from './generator/scheme'
+import { OperationIdMapHandler } from './operationIdMap'
 
 export type RequestBody = {
   contentType: (typeof SwaggerParser.reqContentTypes)[number]
@@ -11,7 +12,6 @@ export type RequestBody = {
 }
 
 export class SwaggerParser {
-  swagger: OpenAPIV3.Document | null = null
   static reqContentTypes = [
     'application/json',
     'application/json-patch+json',
@@ -19,9 +19,7 @@ export class SwaggerParser {
     'multipart/form-data',
   ] as const
 
-  constructor(swagger: OpenAPIV3.Document) {
-    this.swagger = swagger
-  }
+  constructor(private swagger: OpenAPIV3.Document | null) {}
 
   extractSchemaFromObj(
     obj: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
@@ -206,8 +204,11 @@ export class SwaggerParser {
 
   generateRequestParamSchemas(
     operations: (Omit<OpenAPIV3.OperationObject, 'parameters'> & {
+      path: string
+      method: OpenAPIV3.HttpMethods
       parameters: OpenAPIV3.ParameterObject[]
     })[],
+    operationIdMapHandler: OperationIdMapHandler,
     patch?: JSONPatches
   ): Model[] {
     const paramSchemas: Model[] = []
@@ -223,12 +224,8 @@ export class SwaggerParser {
         continue
       }
 
-      if (!operation.operationId) {
-        throw new Error(`operationId should be set for all operaions`)
-      }
-
       const schemaName = normalizeInterfaceName(
-        `${operation.operationId}Params`
+        `${operationIdMapHandler.getOperationId(operation.path, operation.method)}Params`
       )
       const patchItem = patch?.[schemaName]
 

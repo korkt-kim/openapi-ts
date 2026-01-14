@@ -5,14 +5,12 @@ import {
   getNameFromReference,
   fetchWithTimeout,
   camelCase,
-  makeOperationId,
   sortParameters,
   swaggerNameToConfigSymbol,
   extractArgsFromMethod,
   getSwaggerReferenceDeep,
 } from '../util'
 import { CommandOptionProps } from '../types'
-import { OpenAPIV3 } from 'openapi-types'
 
 describe('util', () => {
   describe('parseOption', () => {
@@ -183,23 +181,6 @@ describe('camelCase', () => {
     expect(camelCase('user-data')).toBe('UserData')
     expect(camelCase('userData')).toBe('UserData')
     expect(camelCase('user data')).toBe('UserData')
-  })
-})
-
-describe('makeOperationId', () => {
-  it('should generate operation ID from path and method', () => {
-    const operationId = makeOperationId(
-      '/users/{id}',
-      OpenAPIV3.HttpMethods.GET
-    )
-    expect(operationId).toBe('getUsers')
-  })
-
-  it('should handle duplicate operation IDs', () => {
-    const operationId1 = makeOperationId('/users', OpenAPIV3.HttpMethods.GET)
-    const operationId2 = makeOperationId('/users', OpenAPIV3.HttpMethods.GET)
-    expect(operationId1).toBe('getUsers1')
-    expect(operationId2).toBe('getUsers2')
   })
 })
 

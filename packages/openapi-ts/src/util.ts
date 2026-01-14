@@ -3,13 +3,12 @@ import {
   compact,
   isArray,
   map,
-  omit,
   some,
   trim,
   upperFirst,
 } from 'lodash-es'
 import { CommandOptionProps, JSONPatches, OpenApiOptionProps } from './types'
-import { OpenAPIV3 } from 'openapi-types'
+
 import { RequestBody } from './parser'
 import { readFileSync } from 'fs'
 import { parse } from 'yaml'
@@ -160,61 +159,6 @@ const RESERVED_WORDS = [
 
 export function isReservedWord(str: string) {
   return RESERVED_WORDS.includes(trim(str))
-}
-
-const operationIdSet = new Set<string>()
-
-export function presetOperationIdSet(
-  preserve: Record<string, string>,
-  swaggerDocument: OpenAPIV3.Document
-) {
-  Object.values(preserve).forEach(operationId => {
-    operationIdSet.add(operationId)
-  })
-
-  Object.entries(swaggerDocument.paths).forEach(([, _pathObj]) => {
-    const pathObj = omit(_pathObj, [
-      'parameters',
-      '$ref',
-      'summary',
-      'description',
-      'servers',
-    ])
-
-    Object.values(pathObj).forEach(item => {
-      if (!item.operationId) {
-        return
-      }
-
-      operationIdSet.add(item.operationId)
-    })
-  })
-}
-
-export function makeOperationId(
-  path: string,
-  method: OpenAPIV3.HttpMethods,
-  originalOperationId?: string
-): string {
-  if (originalOperationId && !operationIdSet.has(originalOperationId)) {
-    return originalOperationId
-  }
-
-  path = path.replace(/\{\w+\}\/?/g, '')
-  const originalCandidateId =
-    originalOperationId ??
-    _camelCase(`${method} ${path.replace(/[^a-zA-Z0-9]+/g, ' ')}`)
-
-  let prefixNumber = 1
-
-  let newCandidateId = originalCandidateId
-  while (operationIdSet.has(newCandidateId)) {
-    newCandidateId = `${originalCandidateId}${prefixNumber++}`
-  }
-
-  operationIdSet.add(newCandidateId)
-
-  return newCandidateId
 }
 
 export function sortParameters<T = any>(parameters: T[]): T[] {
