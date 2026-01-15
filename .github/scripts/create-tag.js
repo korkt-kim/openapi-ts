@@ -28,7 +28,7 @@ function createTags(directories) {
           )
 
           const { name, version } = require(packageJsonPath)
-          const tagName = `${name.replace('@fdi/openapi-ts', '')}@${version}`
+          const tagName = `${name.replace('@zakelstorm/openapi-ts', '')}@${version}`
           console.log(`git tag ${tagName}`)
           console.log(`git push origin ${tagName}`)
         } catch (err) {

@@ -1,13 +1,13 @@
-# @fdi/openapi-ts
+# @zakelstorm/openapi-ts
 
 OpenAPI/Swagger TypeScript 코드 생성기
 
 ## 설치
 
 ```bash
-npm install @fdi/openapi-ts
+npm install @zakelstorm/openapi-ts
 # 또는
-pnpm add @fdi/openapi-ts
+pnpm add @zakelstorm/openapi-ts
 ```
 
 ## 사용법
@@ -21,7 +21,7 @@ openapi-ts --path http://example.com/swagger.json --output ./src/api --moduleNam
 ### 프로그래밍 방식
 
 ```typescript
-import { generateApi } from '@fdi/openapi-ts'
+import { generateApi } from '@zakelstorm/openapi-ts'
 
 generateApi({
   path: 'http://example.com/swagger.json',

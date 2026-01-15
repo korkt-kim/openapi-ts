@@ -1,5 +1,5 @@
 {
-  "name": "@fdi/openapi-ts",
+  "name": "@zakelstorm/openapi-ts",
   "type": "module",
   "version": "0.0.0",
   "description": "",
@@ -41,6 +41,6 @@
     "yargs": "^18.0.0"
   },
   "publishConfig": {
-    "registry": "https://nexus.hmc.co.kr/repository/npm-fdi"
+    "registry": "http://39.117.62.129:4873"
   }
 }

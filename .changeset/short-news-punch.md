@@ -1,5 +1,5 @@
 ---
-'@fdi/openapi-ts': patch
+'@zakelstorm/openapi-ts': patch
 ---
 
 ### Patch Changes

@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.changeset/**/*'
+      - 'packages/**/*'
+  workflow_dispatch:
+
+env:
+  PNPM_VERSION: 10.13.1
+  PACKAGE_DIRECTORIES: packages
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Create .npmrc
+        run: |
+          cat << EOF > "./.npmrc"
+            @zakelstorm:registry=http://39.117.62.129:4873/
+            //39.117.62.129:4873/:_authToken=${{ secrets.VERDACCIO_TOKEN }}
+          EOF
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Check for changesets and release
+        run: |
+          if [ -n "$(find .changeset -name "*.md" ! -name "README.md")" ]; then
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "github-actions@github.com"
+
+            pnpm changeset version
+
+            git add .
+            git commit -m "ci(changesets): version packages"
+            git push origin main
+
+            pnpm release
+
+            # Create and push tags
+            node ./.github/scripts/create-tag.js | bash
+          else
+            echo "No changesets found. Skipping release."
+          fi
+        env:
+          CI: true
+          PACKAGE_DIRECTORIES: ${{ env.PACKAGE_DIRECTORIES }}

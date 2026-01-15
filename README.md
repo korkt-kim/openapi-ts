@@ -7,7 +7,7 @@
 1. project의 root 디렉토리에 .npmrc 추가
 
    ```
-   @fdi:registry=https://nexus.hmc.co.kr/repository/npm-fdi
+   @zakelstorm:registry=http://39.117.62.129:4873
    ```
 
 2. openapi-ts package 설치
@@ -15,7 +15,7 @@
    예)
 
    ```
-   npm install @fdi/openapi-ts
+   npm install @zakelstorm/openapi-ts
    ```
 
 ## Rules
@@ -54,7 +54,7 @@
 1. (optional) 빌드가 필요한 package의 경우 watch 모드로 빌드 실행
    ```bash
    // example
-   pnpm --filter @fdi/openapi-ts run dev
+   pnpm --filter @zakelstorm/openapi-ts run dev
    ```
 2. 이 SDK를 사용하는 프로젝트에서 해당 package의 절대 경로를 링크
    ```bash
